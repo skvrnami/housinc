@@ -1,0 +1,8 @@
+*.pdf
+
+data/silc/
+
+.Rproj.user/
+.Rhistory
+
+_targets/

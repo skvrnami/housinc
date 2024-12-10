@@ -1,0 +1,76 @@
+---
+title: "Housing Precarity"
+author: "Michael Škvrňák"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(targets)
+
+tar_load(silc_2012)
+```
+
+
+## Housing precarity according to Clair et al. 2019
+
+Clair et al. 2019 state that the goal of their article is to create a comparative measure of housing precariousness for Europe. They did using EU-SILC 2012 that contained special module on housing conditions. The problem is that some questions were included only in the special module and some questions the measure relies on were removed from the EU-SILC.
+
+- affordability = housing costs are a burden
+- security = forced moves
+- quality and facilities
+- access to essential services
+
+```{r}
+# Affordability
+table(silc_2012$fin_burden_housing)
+
+# Security
+table(silc_2012$changed_dwelling)
+
+# Quality and facilities
+table(silc_2012$leaks_damp) # leaks/damp/rot
+# overcrowded/shortage of space
+table(silc_2012$bath_shower) # bath / shower
+table(silc_2012$toilet) # toilet
+table(silc_2012$ability_to_keep_warm) # keep warm
+table(silc_2012$ability_to_keep_cool) # keep cool
+
+table(silc_2012$access_grocery)
+table(silc_2012$access_banking)
+table(silc_2012$access_postal)
+table(silc_2012$access_transport)
+table(silc_2012$access_healthcare)
+
+
+```
+
+
+## Waldron
+
+```{r}
+# Affordability
+table(silc_2016$fin_burden_housing)
+
+# Security
+table(silc_2016$arrears_mortgage_rent)
+table(silc_2016$probs_crime)
+
+# Housing quality (>=2 indicators)
+table(silc_2016$leaks_damp)
+table(silc_2016$probs_too_dark) 
+table(silc_2016$probs_pollution)
+table(silc_2016$heating_system) # TODO: central heating
+
+# Financial capacity
+table(silc_2016$ability_to_make_ends)
+table(silc_2016$capacity_to_face_expenses) 
+```
+
+
+## Our definition
+
+- what about using fin_burden_debt as a proxy for forced moves
+
+## Comparison
