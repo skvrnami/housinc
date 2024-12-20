@@ -45,24 +45,35 @@ tar_source()
 list(
   tar_target(
     silc_2012, {
+      r_df <- load_r_file("data/silc/2012/SILC 2012_R.sav")
       p_df <- read_sav("data/silc/2012/SILC 2012_P.sav") %>%
         select_and_rename_personal()
       read_sav("data/silc/2012/SILC 2012_H.sav") %>%
         add_weights(., "data/silc/2012/SILC 2012_D.sav") %>%
         select_and_rename_vars() %>%
-        merge_personal_df(., p_df)
+        merge_personal_df(., p_df) %>%
+        merge_register_df(., r_df)
+    }
+  ),
+
+  tar_target(
+    r_silc_2012, {
+      r_rooms <- calculate_required_rooms(silc_2012)
+      recode_vars(silc_2012, r_rooms)
     }
   ),
 
   tar_target(
     silc_2013, {
+      r_df <- load_r_file("data/silc/2013/SILC 2013_R.sav")
       p_df <- read_sav("data/silc/2013/SILC 2013_P.sav") %>%
         select_and_rename_personal()
 
       read_sav("data/silc/2013/SILC 2013_H.sav") %>%
         add_weights(., "data/silc/2013/SILC 2013_D.sav") %>%
         select_and_rename_vars() %>%
-        merge_personal_df(., p_df)
+        merge_personal_df(., p_df) %>%
+        merge_register_df(., r_df)
     }
   ),
 

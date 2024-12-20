@@ -12,6 +12,37 @@ add_weights <- function(df, path){
               relationship = "one-to-one")
 }
 
+load_r_file <- function(path){
+  tmp <- read_sav(path)
+
+  if("RX010" %in% colnames(tmp)){
+    tmp <- tmp %>%
+      rename(age = RX010)
+  }
+
+  if("RB082" %in% colnames(tmp)){
+    tmp <- tmp %>%
+      rename(age = RB082)
+  }
+
+  tmp %>%
+    mutate(
+      person_id = RB030,
+      hh_id = floor(RB030 / 100),
+      couple = as.numeric(RB240_F == 1)
+    ) %>%
+    select(person_id, hh_id, year = RB010, country = RB020,
+           couple, birth_year = RB080, age,
+           sex = RB090) %>%
+    mutate(
+      age = if_else(is.na(age), year - birth_year, age)
+    )
+}
+
+merge_register_df <- function(df1, r_df){
+  full_join(df1, r_df, by = c("year", "country", "hh_id", "person_id"))
+}
+
 select_and_rename_vars <- function(df){
   out <- df %>%
     rename(
@@ -104,8 +135,9 @@ select_and_rename_personal <- function(df){
       year = PB010,
       country = PB020,
       person_id = PB030,
-      birth_year = PB140,
-      sex = PB150
+      # birth_year = PB140,
+      # sex = PB150,
+      # RB240_F
     ) %>%
     mutate(
       hh_id = as.character(person_id)
@@ -145,4 +177,39 @@ recode_arrears <- function(x){
          labels = c("Yes, once",
                     "Yes, twice or more",
                     "No"))
+}
+
+calculate_required_rooms <- function(df){
+  df %>%
+    group_by(hh_id, country, year) %>%
+    summarise(
+      n_couple = sum(couple / 2),
+      n_single_male_18plus = sum(age >= 18 & couple == 0 & sex == 1),
+      n_single_female_18plus = sum(age >= 18 & couple == 0 & sex == 2),
+      n_male_12_17 = sum(age >= 12 & age < 18 & sex == 1),
+      n_female_12_17 = sum(age >= 12 & age < 18 & sex == 2),
+      n_children_male = sum(age < 12 & sex == 1),
+      n_children_female = sum(age < 12 & sex == 2),
+      n_children = sum(age < 12),
+      n_persons = n()
+    ) %>%
+    mutate(
+      required_rooms = 1 +
+        n_couple +
+        n_single_male_18plus +
+        n_single_female_18plus +
+        ceiling(n_male_12_17 / 2) +
+        ceiling(n_female_12_17 / 2) +
+        ceiling(n_children / 2)
+    )
+}
+
+recode_vars <- function(df, r_rooms){
+  full_join(df, r_rooms, by = c("hh_id", "country", "year")) %>%
+    mutate(
+      overcrowded_eurostat = as.numeric(required_rooms > rooms),
+      overcrowded_simple = as.numeric(n_persons > rooms),
+      income_share_on_housing = total_housing_cost / (income_disposable / 12) * 100,
+      housing_burden = as.numeric(income_share_on_housing > 40)
+    )
 }
