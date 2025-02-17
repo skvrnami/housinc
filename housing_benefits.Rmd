@@ -1,0 +1,144 @@
+---
+title: "How much housing benefits decrease housing precarity?"
+author: "Michael Škvrňák"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+library(ggplot2)
+library(targets)
+library(haven)
+```
+
+# Descriptives
+
+## Housing precarity
+
+Groups:
+- precarity by income groups
+- precarity by economic activity (pensioners vs. econ. active)
+- precarity by housing tenure (owners vs. tenants)
+
+Time:
+- increase during energy crisis/inflation
+- time vs. income
+- time vs. econ. activity
+- time vs. age
+
+
+## Effect of housing benefits on housing overburden
+
+Comparison of housing precarity dimensions with and without housing benefits can be made easily only for housing overburden (by calculating overburden based on income with housing benefits and without housing benefits). This assumes that the households would not move if they did not receive housing benefits.
+Comparison of other dimensions require some modelling. 
+```{r, fig.width=10, fig.height=10}
+tar_load(all_silc_households)
+all_silc_households %>% 
+  select(country, year, mean_housing_overburden, mean_housing_overburden_wo_hb) %>% 
+  pivot_longer(., cols = 3:4, names_to = "type", values_to = "pct") %>% 
+  mutate(type = case_when(
+    grepl("wo_hb", type) ~ "Without housing benefits",
+    !grepl("wo_hb", type) ~ "With housing benefits"
+  )) %>% 
+  ggplot(., aes(x = year, y = pct, colour = type)) + 
+  geom_point(alpha = 0.8) + 
+  scale_colour_viridis_d() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", y = "Share of households", 
+       title = "Housing overburden", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+```{r, fig.width=10, fig.height=10}
+tar_load(all_silc_households_tenants)
+all_silc_households_tenants %>% 
+  select(country, year, mean_housing_overburden, mean_housing_overburden_wo_hb) %>% 
+  pivot_longer(., cols = 3:4, names_to = "type", values_to = "pct") %>% 
+  mutate(type = case_when(
+    grepl("wo_hb", type) ~ "Without housing benefits",
+    !grepl("wo_hb", type) ~ "With housing benefits"
+  )) %>% 
+  ggplot(., aes(x = year, y = pct, colour = type)) + 
+  geom_point(alpha = 0.8) + 
+  scale_colour_viridis_d() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::label_percent(scale = 1)) + 
+  labs(x = "Year", y = "Share of households", 
+       title = "Housing overburden", 
+       subtitle = "Tenants",
+       colour = "") + 
+  theme(legend.position = "top")
+
+```
+
+```{r, fig.width=10, fig.height=10}
+tar_load(all_silc_households_owners)
+all_silc_households_owners %>% 
+  select(country, year, mean_housing_overburden, mean_housing_overburden_wo_hb) %>% 
+  pivot_longer(., cols = 3:4, names_to = "type", values_to = "pct") %>% 
+  mutate(type = case_when(
+    grepl("wo_hb", type) ~ "Without housing benefits",
+    !grepl("wo_hb", type) ~ "With housing benefits"
+  )) %>% 
+  ggplot(., aes(x = year, y = pct, colour = type)) + 
+  geom_point(alpha = 0.8) + 
+  scale_colour_viridis_d() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::label_percent(scale = 1)) + 
+  labs(x = "Year", y = "Share of households", 
+       title = "Housing overburden", 
+       subtitle = "Owners",
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+```{r}
+diff_all <- all_silc_households %>% 
+  mutate(diff = mean_housing_overburden_wo_hb - mean_housing_overburden) %>% 
+  group_by(country) %>% 
+  summarise(mean_diff_overburden = round(mean(diff, na.rm = TRUE), 2), 
+            .groups = "drop") %>% 
+  arrange(desc(mean_diff_overburden))
+
+diff_tenants <- all_silc_households_tenants %>% 
+  mutate(diff = mean_housing_overburden_wo_hb - mean_housing_overburden) %>% 
+  group_by(country) %>% 
+  summarise(mean_diff_overburden_tenants = round(mean(diff, na.rm = TRUE), 2), 
+            .groups = "drop") %>% 
+  arrange(desc(mean_diff_overburden_tenants))
+
+diff_owners <- all_silc_households_owners %>% 
+  mutate(diff = mean_housing_overburden_wo_hb - mean_housing_overburden) %>% 
+  group_by(country) %>% 
+  summarise(mean_diff_overburden_owners = round(mean(diff, na.rm = TRUE), 2), 
+            .groups = "drop") %>% 
+  arrange(desc(mean_diff_overburden_owners))
+
+```
+
+### Average
+```{r}
+purrr::reduce(list(diff_all, diff_tenants, diff_owners), 
+              ~full_join(.x, .y, by = "country")) %>% 
+  mutate(ratio = mean_diff_overburden_tenants / mean_diff_overburden_owners) %>% 
+  knitr::kable(., col.names = c("Country", "Overburden diff. (all)", 
+                                "Overburden diff. (tenants)", 
+                                "Overburden diff. (owners)", 
+                                "Ratio"), 
+               digits = 2)
+```
+
+## Models of housing overburden
+
+I want to estimate housing overburden/share of income on housing 
+```{r}
+
+```
+

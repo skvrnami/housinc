@@ -5,3 +5,6 @@ https://ec.europa.eu/eurostat/documents/203647/20298610/Methodological+guideline
 # TODO
 - [ ] olabelovat
 - [ ] napočítat prekaritu podle Clair, Waldron, ...
+
+
+- [ ] https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Severe_housing_deprivation_rate

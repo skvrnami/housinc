@@ -13,9 +13,13 @@ add_weights <- function(df, path){
 }
 
 load_r_file <- function(path){
-  tmp <- read_sav(path)
+  if(grepl("sav$", path)){
+    tmp <- read_sav(path)
+  }else{
+    tmp <- read_dta(path)
+  }
 
-  if("RX010" %in% colnames(tmp)){
+  if("RX010" %in% colnames(tmp) & !"RB082" %in% colnames(tmp)){
     tmp <- tmp %>%
       rename(age = RX010)
   }
@@ -29,104 +33,59 @@ load_r_file <- function(path){
     mutate(
       person_id = RB030,
       hh_id = floor(RB030 / 100),
-      couple = as.numeric(RB240_F == 1)
+      has_partner = as.numeric(RB240_F == 1),
+      partner_id = RB240,
+      father_id = RB220,
+      mother_id = RB230,
+      partner_in_same_household = floor(partner_id / 100) == hh_id,
+      couple = as.numeric(has_partner & partner_in_same_household)
     ) %>%
     select(person_id, hh_id, year = RB010, country = RB020,
-           couple, birth_year = RB080, age,
+           couple, birth_year = RB080, partner_id,
+           has_partner, partner_in_same_household,
+           father_id, mother_id,
+           age,
            sex = RB090) %>%
+    mutate(
+      age = as.numeric(age),
+      birth_year = as.numeric(birth_year)
+    ) %>%
     mutate(
       age = if_else(is.na(age), year - birth_year, age)
     )
 }
 
 merge_register_df <- function(df1, r_df){
-  full_join(df1, r_df, by = c("year", "country", "hh_id", "person_id"))
+  full_join(df1, r_df, by = c("year", "country", "hh_id", "person_id"),
+            relationship = "one-to-one")
 }
 
-select_and_rename_vars <- function(df){
+select_and_rename_vars <- function(df, rename_lookup){
   out <- df %>%
     rename(
-      year = HB010,
-      country = HB020,
-      hh_id = HB030,
-      month_interview = HB050,
-      year_interview = HB060,
-      dwelling_type = HH010,
-      tenure_status = HH021,
-      rooms = HH030,
-      ability_to_keep_warm = HH050,
-      ability_to_make_ends = HS120,
-      capacity_to_face_expenses = HS060,
-      rent = HH060,
-      total_housing_cost = HH070,
-      arrears_mortgage_rent = HS011,
-      arrears_utility = HS021,
-      arrears_other = HS031,
-      fin_burden_debt = HS150,
-      income_gross = HY010,
-      income_disposable = HY020,
-      allowance_family = HY050N,
-      allowance_social = HY060N,
-      allowance_housing = HY070N
+      any_of(rename_lookup)
     )
 
-    if("HH040" %in% colnames(out)){
-      out <- out %>%
-        rename(
-          leaks_damp = HH040,
-          bath_shower = HH081,
-          toilet = HH091,
-          fin_burden_housing = HS140,
-          probs_too_dark = HS160,
-          probs_noise = HS170,
-          probs_pollution = HS180,
-          probs_crime = HS190
-        )
-    }
-
-    if("HS022" %in% colnames(out)){
-      out <- out %>%
-        rename(
-          reduced_utility_cost = HS022
-        )
-    }
-
-    if("HC010" %in% colnames(out) & out$year[1] != 2020){
-      out <- out %>%
-        rename(
-          shortage_of_space = HC010
-        )
-    }
-
-    if("HC150" %in% colnames(out)){
-      out <- out %>%
-        rename(
-          immediate_risk_dwelling_change = HC150,
-          main_reasons_leaving_dwelling = HC160,
-          access_grocery = HC090,
-          access_banking = HC100,
-          access_postal = HC110,
-          access_transport = HC120,
-          access_healthcare = HC130
-        )
-    }
-
-    if("HC070" %in% colnames(out)){
-      out <- out %>%
-        rename(
-          ability_to_keep_cool = HC070
-        )
-    }
-
-    if("HC001" %in% colnames(out)){
-      out <- out %>%
-        rename(
-          heating_sytem = HC001
-        )
-    }
-
     out %>%
-      select(-starts_with("H", ignore.case = FALSE))
+      select(-starts_with("H", ignore.case = FALSE)) %>%
+      select(-starts_with("M", ignore.case = FALSE))
+}
+
+recode_education <- function(education){
+  case_when(
+      education == 0 ~ "Pre-primary",
+      education == 1 | education == 100 ~ "Primary",
+      education == 2 | education == 200 ~ "Lower secondary",
+      education == 3 | between(education, 300, 399) ~ "Upper secondary",
+      education == 4 | between(education, 400, 499) ~ "Post-secondary non-tertiary",
+      education == 5 | between(education, 500, 599) ~ "First stage tertiary",
+      education == 6 | education >= 600 ~ "Second stage tertiary"
+  ) %>%
+    factor(., levels = c("Pre-primary", "Primary",
+                         "Lower secondary", "Upper secondary",
+                         "Post-secondary non-tertiary",
+                         "First stage tertiary",
+                         "Second stage tertiary"))
 }
 
 select_and_rename_personal <- function(df){
@@ -154,8 +113,19 @@ select_and_rename_personal <- function(df){
       )
   }
 
+  if("PE040" %in% colnames(out)){
+    out <- out %>%
+      rename(education = PE040)
+  }
+
+  if("PE041" %in% colnames(out)){
+    out <- out %>%
+      rename(education = PE041)
+  }
+
   out %>%
-    select(-starts_with("P", ignore.case = FALSE))
+    select(-starts_with("P", ignore.case = FALSE)) %>%
+    mutate(r_education = recode_education(education))
 }
 
 merge_personal_df <- function(hh_df, p_df){
@@ -181,6 +151,7 @@ recode_arrears <- function(x){
 
 calculate_required_rooms <- function(df){
   df %>%
+    as_polars_df() %>%
     group_by(hh_id, country, year) %>%
     summarise(
       n_couple = sum(couple / 2),
@@ -191,7 +162,8 @@ calculate_required_rooms <- function(df){
       n_children_male = sum(age < 12 & sex == 1),
       n_children_female = sum(age < 12 & sex == 2),
       n_children = sum(age < 12),
-      n_persons = n()
+      n_persons = n(),
+      .groups = "drop"
     ) %>%
     mutate(
       required_rooms = 1 +
@@ -201,7 +173,8 @@ calculate_required_rooms <- function(df){
         ceiling(n_male_12_17 / 2) +
         ceiling(n_female_12_17 / 2) +
         ceiling(n_children / 2)
-    )
+    ) %>%
+    as_tibble()
 }
 
 recode_vars <- function(df, r_rooms){
@@ -209,7 +182,150 @@ recode_vars <- function(df, r_rooms){
     mutate(
       overcrowded_eurostat = as.numeric(required_rooms > rooms),
       overcrowded_simple = as.numeric(n_persons > rooms),
-      income_share_on_housing = total_housing_cost / (income_disposable / 12) * 100,
-      housing_burden = as.numeric(income_share_on_housing > 40)
+      income_share_on_housing = total_housing_cost /
+        (income_disposable / 12) * 100,
+      income_share_on_housing_wo_hb = total_housing_cost /
+        ((income_disposable - allowance_housing) / 12) * 100,
+      housing_overburden = as.numeric(income_share_on_housing > 40),
+      housing_overburden_wo_hb = as.numeric(income_share_on_housing_wo_hb > 40),
+    ) %>%
+    mutate(
+      flag_income_share_on_housing_out_of_range =
+        income_share_on_housing < 0 | income_share_on_housing > 100,
+      income_share_on_housing = case_when(
+        income_share_on_housing < 0 ~ 0,
+        income_share_on_housing > 100 ~ 100,
+        TRUE ~ income_share_on_housing
+      ),
+      income_share_on_housing_wo_hb = case_when(
+        income_share_on_housing_wo_hb < 0 ~ 0,
+        income_share_on_housing_wo_hb > 100 ~ 100,
+        TRUE ~ income_share_on_housing_wo_hb
+      )
+    )
+}
+
+label_vars <- function(df, cbook){
+  vars <- intersect(colnames(df), unique(cbook$variable_name))
+  purrr::walk(vars, function(x) {
+    values <- cbook %>%
+      filter(variable_name == x) %>%
+      pull(value)
+
+    labels <- cbook %>%
+      filter(variable_name == x) %>%
+      pull(label)
+
+    df <<- df %>%
+      mutate({{x}} := factor(.[[x]], levels = values, labels = labels))
+  })
+
+  df
+}
+
+summarise_precarity <- function(df){
+  df %>%
+    mutate(
+      dim_affordability = housing_overburden,
+      dim_insecurity = arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more") |
+          arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+      dim_quality = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+          ability_to_keep_warm == "No"),
+      ),
+      dim_quality2 = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+                  ability_to_keep_warm == "No" |
+                  bath_shower %in% c("No", "Yes, shared") |
+                  toilet %in% c("No", "Yes, shared") |
+                  leaks_damp == "Yes"),
+      ),
+      dim_locality =
+        probs_noise == "Yes" |
+          probs_crime == "Yes" |
+          probs_noise == "Yes",
+    ) %>%
+    group_by(country, year) %>%
+    summarise(
+      # affordability
+      mean_housing_overburden = wtd.mean(housing_overburden, w = hh_cross_weight) * 100,
+
+      mean_housing_overburden_wo_hb = wtd.mean(housing_overburden_wo_hb, w = hh_cross_weight) * 100,
+      # tenure security
+      mean_arrears_mortgage_rent = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"),
+                                            w = hh_cross_weight) * 100,
+      mean_arrears_utility = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+                                      w = hh_cross_weight) * 100,
+
+      # quality
+      mean_ability_to_keep_warm = wtd.mean(ability_to_keep_warm == "No", w = hh_cross_weight) * 100,
+      mean_overcrowded_eu = wtd.mean(overcrowded_eurostat, w = hh_cross_weight) * 100,
+      mean_overcrowded_si = wtd.mean(overcrowded_simple, w = hh_cross_weight) * 100,
+      mean_leaks_damp = wtd.mean(leaks_damp == "Yes", w = hh_cross_weight) * 100,
+      mean_bath_shower = wtd.mean(bath_shower %in% c("No", "Yes, shared"), w = hh_cross_weight) * 100,
+      mean_toilet = wtd.mean(toilet %in% c("No", "Yes, shared"), w = hh_cross_weight) * 100,
+
+      # locality
+      mean_probs_crime = wtd.mean(probs_crime == "Yes", w = hh_cross_weight) * 100,
+      mean_probs_pollution = wtd.mean(probs_pollution == "Yes", w = hh_cross_weight) * 100,
+      mean_probs_noise = wtd.mean(probs_noise == "Yes", w = hh_cross_weight) * 100,
+
+      # dimensions
+      mean_dim_affordability = mean_housing_overburden,
+      mean_dim_insecurity = wtd.mean(
+        dim_insecurity,
+        w = hh_cross_weight
+      ) * 100,
+      mean_dim_quality = wtd.mean(
+        dim_quality,
+        w = hh_cross_weight
+      ) * 100,
+      mean_dim_quality2 = wtd.mean(
+        dim_quality2,
+        w = hh_cross_weight
+      ) * 100,
+      mean_dim_locality = wtd.mean(
+        dim_locality,
+        w = hh_cross_weight
+      ) * 100,
+      dim_0 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality,
+                               dim_locality))) == 0,
+                       w = hh_cross_weight) * 100,
+      dim_1 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality,
+                                        dim_locality))) == 1,
+                       w = hh_cross_weight) * 100,
+      dim_2 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality,
+                                        dim_locality))) == 2,
+                       w = hh_cross_weight) * 100,
+      dim_3 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality,
+                                        dim_locality))) == 3,
+                       w = hh_cross_weight) * 100,
+      dim_4 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality,
+                                        dim_locality))) == 4,
+                       w = hh_cross_weight) * 100,
+
+      dim3_0 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 0,
+                       w = hh_cross_weight) * 100,
+      dim3_1 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 1,
+                       w = hh_cross_weight) * 100,
+      dim3_2 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 2,
+                       w = hh_cross_weight) * 100,
+      dim3_3 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 3,
+                       w = hh_cross_weight) * 100,
+      .groups = "drop"
+    )
+
+}
+
+recode_takeup <- function(df){
+  df %>%
+    mutate(
+      takeup_allowance_housing = allowance_housing > 0,
+      takeup_allowance_family = allowance_family > 0,
+      takeup_allowance_social = allowance_social > 0,
+      takeup_any = takeup_allowance_housing | takeup_allowance_family |
+        takeup_allowance_social
     )
 }
