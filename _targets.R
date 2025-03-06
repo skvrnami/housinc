@@ -664,7 +664,8 @@ list(
         `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
         # share on housing with benefits is lower than share on housing without benefits
         `Share w/ benefits <= Share w/o benefits` = income_share_on_housing <= income_share_on_housing_wo_hb,
-        `N of hh members` = (n_above13 + n_below13) == n_members
+        `N of hh members` = (n_above13 + n_below13) == n_members,
+        `Econ_status` = !is.na(econ_status)
       )
     }
   ),
@@ -1535,8 +1536,6 @@ list(
            chart_core_quality, width = 8, height = 5,
            bg = "white")
   ),
-
-
 
   ## Arrears -----------------------------
 #   tar_target(

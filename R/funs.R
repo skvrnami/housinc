@@ -88,6 +88,30 @@ recode_education <- function(education){
                          "Second stage tertiary"))
 }
 
+recode_econ_status_2020 <- function(econ_status){
+  case_when(
+    econ_status %in% c(1:4) ~ "Employed",
+    econ_status == 5 ~ "Unemployed",
+    econ_status == 7 ~ "Retired",
+    econ_status == 8 ~ "Unable to work due to health problems",
+    econ_status == 6 ~ "Student",
+    econ_status == 10 ~ "Fulfilling domestic tasks",
+    econ_status %in% c(9, 11) ~ "Other"
+  )
+}
+
+recode_econ_status_2021 <- function(econ_status){
+  case_when(
+    econ_status == 1 ~ "Employed",
+    econ_status == 2 ~ "Unemployed",
+    econ_status == 3 ~ "Retired",
+    econ_status == 4 ~ "Unable to work due to health problems",
+    econ_status == 5 ~ "Student",
+    econ_status == 6 ~ "Fulfilling domestic tasks",
+    econ_status %in% c(7, 8) ~ "Other"
+  )
+}
+
 select_and_rename_personal <- function(df){
   out <- df %>%
     rename(
@@ -121,6 +145,16 @@ select_and_rename_personal <- function(df){
   if("PE041" %in% colnames(out)){
     out <- out %>%
       rename(education = PE041)
+  }
+
+  if("PL032" %in% colnames(out)){
+    out <- out %>%
+      mutate(econ_status = recode_econ_status_2021(PL032))
+  }
+
+  if("PL031" %in% colnames(out)){
+    out <- out %>%
+      mutate(econ_status = recode_econ_status_2020(PL031))
   }
 
   out %>%
