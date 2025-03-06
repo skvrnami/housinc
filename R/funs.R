@@ -180,6 +180,9 @@ calculate_required_rooms <- function(df){
 recode_vars <- function(df, r_rooms){
   full_join(df, r_rooms, by = c("hh_id", "country", "year")) %>%
     mutate(
+      allowance_housing = if_else(allowance_housing < 0, 0, allowance_housing)
+    ) %>%
+    mutate(
       overcrowded_eurostat = as.numeric(required_rooms > rooms),
       overcrowded_simple = as.numeric(n_persons > rooms),
       income_share_on_housing = total_housing_cost /
@@ -328,4 +331,84 @@ recode_takeup <- function(df){
       takeup_any = takeup_allowance_housing | takeup_allowance_family |
         takeup_allowance_social
     )
+}
+
+
+add_income_quantiles <- function(tmp){
+  tmp <- tmp %>%
+    mutate(income_disposable_eqi = income_disposable / consumption_units)
+
+  quantiles <- tmp %>%
+    group_by(country) %>%
+    summarise(
+      p20 = wtd.quantile(income_disposable, hh_cross_weight, probs = c(0.2)),
+      p40 = wtd.quantile(income_disposable, hh_cross_weight, probs = c(0.4)),
+      p50 = wtd.quantile(income_disposable, hh_cross_weight, probs = c(0.5)),
+      p60 = wtd.quantile(income_disposable, hh_cross_weight, probs = c(0.6)),
+      p80 = wtd.quantile(income_disposable, hh_cross_weight, probs = c(0.8)),
+      .groups = "drop"
+    )
+
+  quantiles_eqi <- tmp %>%
+    group_by(country) %>%
+    summarise(
+      p20_eqi = wtd.quantile(income_disposable_eqi, hh_cross_weight, probs = c(0.2)),
+      p40_eqi = wtd.quantile(income_disposable_eqi, hh_cross_weight, probs = c(0.4)),
+      p50_eqi = wtd.quantile(income_disposable_eqi, hh_cross_weight, probs = c(0.5)),
+      p60_eqi = wtd.quantile(income_disposable_eqi, hh_cross_weight, probs = c(0.6)),
+      p80_eqi = wtd.quantile(income_disposable_eqi, hh_cross_weight, probs = c(0.8)),
+      .groups = "drop"
+    )
+
+  tmp %>%
+    left_join(., quantiles, by = "country") %>%
+    left_join(., quantiles_eqi, by = "country") %>%
+    mutate(
+      income_disposable_quantile = case_when(
+        income_disposable <= p20 ~ "1st quantile (lowest)",
+        income_disposable <= p40 ~ "2nd quantile",
+        income_disposable <= p60 ~ "3rd quantile",
+        income_disposable <= p80 ~ "4th quantile",
+        income_disposable > p80 ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)")),
+      income_disposable_median = if_else(
+        income_disposable <= p50, "Under median", "Above median"
+      ) %>% factor(., levels = c("Under median", "Above median")),
+      income_disposable_eqi_quantile = case_when(
+        income_disposable_eqi <= p20_eqi ~ "1st quantile (lowest)",
+        income_disposable_eqi <= p40_eqi ~ "2nd quantile",
+        income_disposable_eqi <= p60_eqi ~ "3rd quantile",
+        income_disposable_eqi <= p80_eqi ~ "4th quantile",
+        income_disposable_eqi > p80_eqi ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)")),
+      income_disposable_eqi_median = if_else(
+        income_disposable_eqi <= p50_eqi, "Under median", "Above median"
+      ) %>% factor(., levels = c("Under median", "Above median"))
+    )
+
+}
+
+calculate_consumption_units <- function(r_df){
+  cu <- r_df %>%
+    mutate(age = (year - 1) - birth_year,
+           above13 = age > 13,
+           below13 = age <= 13) %>%
+    group_by(country, hh_id) %>%
+    summarise(
+      n_above13 = sum(above13),
+      n_below13 = sum(below13),
+      n_members = n(),
+      .groups = "drop"
+    )
+
+  cu %>%
+    mutate(consumption_units = 1 + (n_above13 - 1) * 0.5 + n_below13 * 0.3)
 }

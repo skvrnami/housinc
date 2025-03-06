@@ -7,7 +7,8 @@ tar_option_set(
   packages = c("tibble", "haven", "dplyr", "Hmisc",
                "readxl", "tidyr", "ggplot2", "glue",
                "geofacet", "sf", "rnaturalearth",
-               "cowplot", "rlang", "tidypolars"), # Packages that your targets need for their tasks.
+               "cowplot", "rlang", "tidypolars",
+               "validate"), # Packages that your targets need for their tasks.
   # controller = crew_controller_local(workers = 2),
   format = "qs" # Optionally set the default storage format. qs is fast.
 )
@@ -76,9 +77,13 @@ list(
       r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
       p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
         add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -104,9 +109,13 @@ list(
       r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
       p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
         add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -132,9 +141,13 @@ list(
       r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
       p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
         add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -160,9 +173,13 @@ list(
       r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
       p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
         add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -188,9 +205,13 @@ list(
       r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
       p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
         add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -215,9 +236,13 @@ list(
       r_df <- load_r_file("data/silc/2012/SILC 2012_R.sav")
       p_df <- read_sav("data/silc/2012/SILC 2012_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
       read_sav("data/silc/2012/SILC 2012_H.sav") %>%
         add_weights(., "data/silc/2012/SILC 2012_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -242,10 +267,13 @@ list(
       r_df <- load_r_file("data/silc/2013/SILC 2013_R.sav")
       p_df <- read_sav("data/silc/2013/SILC 2013_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2013/SILC 2013_H.sav") %>%
         add_weights(., "data/silc/2013/SILC 2013_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -270,10 +298,13 @@ list(
       r_df <- load_r_file("data/silc/2014/SILC 2014_R.sav")
       p_df <- read_sav("data/silc/2014/SILC 2014_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2014/SILC 2014_H.sav") %>%
         add_weights(., "data/silc/2014/SILC 2014_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -298,10 +329,13 @@ list(
       r_df <- load_r_file("data/silc/2015/SILC 2015_R.sav")
       p_df <- read_sav("data/silc/2015/SILC 2015_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2015/SILC 2015_H.sav") %>%
         add_weights(., "data/silc/2015/SILC 2015_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -326,10 +360,13 @@ list(
       r_df <- load_r_file("data/silc/2016/SILC 2016_R.sav")
       p_df <- read_sav("data/silc/2016/SILC 2016_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2016/SILC 2016_H.sav") %>%
         add_weights(., "data/silc/2016/SILC 2016_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -354,10 +391,13 @@ list(
       r_df <- load_r_file("data/silc/2017/SILC 2017_R.sav")
       p_df <- read_sav("data/silc/2017/SILC 2017_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2017/SILC 2017_H.sav") %>%
         add_weights(., "data/silc/2017/SILC 2017_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -382,10 +422,13 @@ list(
       r_df <- load_r_file("data/silc/2018/SILC 2018_R.dta")
       p_df <- read_dta("data/silc/2018/SILC 2018_P.dta") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_dta("data/silc/2018/SILC 2018_H.dta") %>%
         add_weights(., "data/silc/2018/SILC 2018_D.dta") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -410,10 +453,13 @@ list(
       r_df <- load_r_file("data/silc/2019/SILC 2019_R.dta")
       p_df <- read_dta("data/silc/2019/SILC 2019_P.dta") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2019/SILC 2019_H.sav") %>%
         add_weights(., "data/silc/2019/SILC 2019_D.dta") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -438,10 +484,13 @@ list(
       r_df <- load_r_file("data/silc/2020/SILC 2020_R.sav")
       p_df <- read_sav("data/silc/2020/SILC 2020_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2020/SILC 2020_H.sav") %>%
         add_weights(., "data/silc/2020/SILC 2020_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -466,10 +515,13 @@ list(
       r_df <- load_r_file("data/silc/2021/SILC 2021_R.sav")
       p_df <- read_sav("data/silc/2021/SILC 2021_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2021/SILC 2021_H.sav") %>%
         add_weights(., "data/silc/2021/SILC 2021_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -494,10 +546,13 @@ list(
       r_df <- load_r_file("data/silc/2022/SILC 2022_R.sav")
       p_df <- read_sav("data/silc/2022/SILC 2022_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2022/SILC 2022_H.sav") %>%
         add_weights(., "data/silc/2022/SILC 2022_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -522,10 +577,13 @@ list(
       r_df <- load_r_file("data/silc/2023/SILC 2023_R.sav")
       p_df <- read_sav("data/silc/2023/SILC 2023_P.sav") %>%
         select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
 
       read_sav("data/silc/2023/SILC 2023_H.sav") %>%
         add_weights(., "data/silc/2023/SILC 2023_D.sav") %>%
         select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
         merge_register_df(., r_df)
     }
@@ -596,6 +654,108 @@ list(
         slice(1)
     }
   ),
+
+  # Validations -------------------------------------------
+  tar_target(
+    rules, {
+      validator(
+        `Unique IDs` = is_unique(hh_id, person_id, country),
+        `Weight is not missing` = !is.na(hh_cross_weight),
+        `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
+        # share on housing with benefits is lower than share on housing without benefits
+        `Share w/ benefits <= Share w/o benefits` = income_share_on_housing <= income_share_on_housing_wo_hb,
+        `N of hh members` = (n_above13 + n_below13) == n_members
+      )
+    }
+  ),
+
+  tar_target(
+    validation_silc_2007,
+    confront(r_silc_2007, rules)
+  ),
+
+  tar_target(
+    validation_silc_2008,
+    confront(r_silc_2008, rules)
+  ),
+
+  tar_target(
+    validation_silc_2009,
+    confront(r_silc_2009, rules)
+  ),
+
+  tar_target(
+    validation_silc_2010,
+    confront(r_silc_2010, rules)
+  ),
+
+  tar_target(
+    validation_silc_2011,
+    confront(r_silc_2011, rules)
+  ),
+
+  tar_target(
+    validation_silc_2012,
+    confront(r_silc_2012, rules)
+  ),
+
+  tar_target(
+    validation_silc_2013,
+    confront(r_silc_2013, rules)
+  ),
+
+  tar_target(
+    validation_silc_2014,
+    confront(r_silc_2014, rules)
+  ),
+
+  tar_target(
+    validation_silc_2015,
+    confront(r_silc_2015, rules)
+  ),
+
+  tar_target(
+    validation_silc_2016,
+    confront(r_silc_2016, rules)
+  ),
+
+  tar_target(
+    validation_silc_2017,
+    confront(r_silc_2017, rules)
+  ),
+
+  tar_target(
+    validation_silc_2018,
+    confront(r_silc_2018, rules)
+  ),
+
+  tar_target(
+    validation_silc_2019,
+    confront(r_silc_2019, rules)
+  ),
+
+  tar_target(
+    validation_silc_2020,
+    confront(r_silc_2020, rules)
+  ),
+
+  tar_target(
+    validation_silc_2021,
+    confront(r_silc_2021, rules)
+  ),
+
+  tar_target(
+    validation_silc_2022,
+    confront(r_silc_2022, rules)
+  ),
+
+  tar_target(
+    validation_silc_2023,
+    confront(r_silc_2023, rules)
+  ),
+
+  tar_render(validations_rmd,
+             "validations.Rmd"),
 
   # Summary -----------------------------------------------
   tar_target(
@@ -1379,218 +1539,218 @@ list(
 
 
   ## Arrears -----------------------------
-  tar_target(
-    arrears_rent, {
-      bind_rows(
-        # r_silc_2007,
-        # r_silc_2008,
-        # r_silc_2009,
-        # r_silc_2010,
-        # r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
-      ) %>%
-        filter(grepl("Tenant", tenure_status)) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
-        group_by(year, country, arrears_mortgage_rent) %>%
-        summarise(n = sum(hh_cross_weight)) %>%
-        filter(!is.na(arrears_mortgage_rent)) %>%
-        group_by(year, country) %>%
-        mutate(pct = n / sum(n) * 100) %>%
-        ggplot(., aes(x = year, y = pct, fill = arrears_mortgage_rent)) +
-        geom_bar(stat = "identity") +
-        scale_fill_viridis_d() +
-        theme_minimal() +
-        facet_geo(~country, grid = silc_countries_grid, label = "name") +
-        labs(title = "Arrears on rent, tenants only",
-             subtitle = "In the past twelve months, has the household been in arrears, i.e. has been unable to pay on time due to
-financial difficulties for rent?",
-             x = "", y = "", fill = "",
-             caption = "Data: EU-SILC (2012-2023)"
-        ) +
-        scale_y_continuous(labels = scales::label_percent(scale = 1)) +
-        theme(legend.position = "top",
-              panel.grid.minor = element_blank())
-    }
-  ),
-
-  tar_target(
-    arrears_rent_file,
-    ggsave("figs/tenants_arrears_rent.png", arrears_rent,
-           width = 11, height = 10, bg = "white")
-  ),
-
-  tar_target(
-    arrears_rent_without_no, {
-      bind_rows(
-        # r_silc_2007,
-        # r_silc_2008,
-        # r_silc_2009,
-        # r_silc_2010,
-        # r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
-      ) %>%
-        filter(grepl("Tenant", tenure_status)) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
-        group_by(year, country, arrears_mortgage_rent) %>%
-        summarise(n = sum(hh_cross_weight)) %>%
-        filter(!is.na(arrears_mortgage_rent)) %>%
-        group_by(year, country) %>%
-        mutate(pct = n / sum(n) * 100) %>%
-        ungroup %>%
-        filter(arrears_mortgage_rent != "No") %>%
-        ggplot(., aes(x = year, y = pct, fill = arrears_mortgage_rent)) +
-        geom_bar(stat = "identity") +
-        scale_fill_viridis_d() +
-        theme_minimal() +
-        facet_geo(~country, grid = silc_countries_grid, label = "name") +
-        labs(title = "Arrears on rent, tenants only",
-             subtitle = "In the past twelve months, has the household been in arrears, i.e. has been unable to pay on time due to
-  financial difficulties for rent?",
-  x = "", y = "", fill = "") +
-        scale_y_continuous(labels = scales::label_percent(scale = 1)) +
-        theme(legend.position = "top")
-    }
-  ),
-
-  tar_target(
-    arrears_cartogram_en, {
-      arrears_2023_df <- r_silc_2023 %>%
-        filter(grepl("Tenant", tenure_status)) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
-        group_by(year, country, arrears_mortgage_rent) %>%
-        summarise(n = sum(hh_cross_weight)) %>%
-        filter(!is.na(arrears_mortgage_rent)) %>%
-        mutate(arrears_mortgage_rent = factor(arrears_mortgage_rent,
-                                              levels = c("Yes, twice or more",
-                                                         "Yes, once", "No"))) %>%
-        group_by(year, country) %>%
-        mutate(pct = n / sum(n) * 100) %>%
-        mutate(country = as.character(country))
-
-      head(arrears_2023_df)
-      unique_countries <- unique(arrears_2023_df$country)
-      pie_charts <- purrr::map_df(1:length(unique_countries), function(x) {
-        p <- arrears_2023_df %>%
-          filter(country == unique_countries[x]) %>%
-          ggplot() +
-          geom_col(aes(x = 1, y = pct, fill = arrears_mortgage_rent), width = 1) +
-          scale_fill_viridis_d() +
-          coord_polar(theta = "y") +
-          theme_void() +
-          theme(plot.margin = unit(c(0, 0, 0, 0),"cm"),
-                legend.position = "none")
-
-        p_grob <- ggplotGrob(p)
-
-        tibble(
-          country = unique_countries[x],
-          pie_chart = list(p_grob)
-        )
-      })
-      #
-      # pie_charts
-      # world_map <- ne_countries(scale = 50, returnclass = 'sf')
-      # europe_map <- world_map %>%
-      #   # filter(featurecla == "Admin-0 country") %>%
-      #   filter(iso_a2_eh %in% c(arrears_2023$country, "UK", "GB", "CH",
-      #                           "RS", "BA", "GR", "BH", "UA", "MD", "MK",
-      #                           "ME", "AL", "XK")) %>%
-      #   left_join(., pie_charts, by = c("iso_a2_eh"="country")) %>%
-      #   select(iso_a2_eh, pie_chart)
-      #
-      # europe_map2 <- europe_map %>%
-      #   mutate(country_centroid_lon =
-      #            st_coordinates(st_centroid(., of_largest_polygon = TRUE)$geometry)[, 1],
-      #          country_centroid_lat =
-      #            st_coordinates(st_centroid(., of_largest_polygon = TRUE)$geometry)[, 2],
-      #          circle_area = as.numeric(st_area(.)),
-      #          circle_radius = as.numeric(sqrt(circle_area/pi) / 110000))
-      #
-      # p_base_map <- ggplot() +
-      #   geom_sf(data = europe_map2, fill = "gray80", color = alpha("black", 0.5)) +
-      #   # geom_sf(data = cartogram_dorling, fill = alpha("#dfc27d", 0.8), color = alpha("#a6611a", 0.8)) +
-      #   theme_void() +
-      #   scale_x_continuous(limits = c(-10, 35)) +
-      #   scale_y_continuous(limits = c(35, 65))
-      #
-      # valid_pie_charts <- europe_map2 %>%
-      #   mutate(
-      #     pie_is_null = purrr::map_lgl(pie_chart, is.null)
-      #   ) %>%
-      #   filter(!pie_is_null) %>%
-      #   mutate(
-      #     country_centroid_lon = case_when(
-      #       iso_a2_eh == "NO" ~ country_centroid_lon - 3,
-      #       iso_a2_eh == "DE" ~ country_centroid_lon - 0.6,
-      #       TRUE ~ country_centroid_lon
-      #     ),
-      #     country_centroid_lat = case_when(
-      #       iso_a2_eh == "NO" ~ country_centroid_lat - 2.8,
-      #       iso_a2_eh == "FI" ~ country_centroid_lat - 1.5,
-      #       iso_a2_eh == "SE" ~ country_centroid_lat - 1.5,
-      #       TRUE ~ country_centroid_lat
-      #     )
-      #   )
-      #
-      # legend <- get_legend(
-      #   arrears_2023 %>%
-      #     filter(country == "AT") %>%
-      #     ggplot() +
-      #     geom_col(aes(x = 1, y = pct, fill = arrears_mortgage_rent), width = 1) +
-      #     scale_fill_viridis_d() +
-      #     coord_polar(theta = "y") +
-      #     theme_void() +
-      #     labs(fill = "")
-      # )
-      #
-      # purrr::reduce(1:nrow(valid_pie_charts),
-      #               .f = function(x, y){
-      #                 x + annotation_custom(grob = valid_pie_charts$pie_chart[[y]],
-      #                                       xmin = valid_pie_charts$country_centroid_lon[y] - valid_pie_charts$circle_radius[y],
-      #                                       xmax = valid_pie_charts$country_centroid_lon[y] + valid_pie_charts$circle_radius[y],
-      #                                       ymin = valid_pie_charts$country_centroid_lat[y] - valid_pie_charts$circle_radius[y],
-      #                                       ymax = valid_pie_charts$country_centroid_lat[y] + valid_pie_charts$circle_radius[y])},
-      #               .init = p_base_map) +
-      #   annotation_custom(grob = legend,
-      #                     xmin = -8,
-      #                     xmax = -8,
-      #                     ymin = 65,
-      #                     ymax = 65) +
-      #   labs(caption = "Data: EU-SILC 2023",
-      #        title = "Arrears on rent among tenants",
-      #        subtitle = "In the past twelve months, has the household been in arrears,\ni.e. has been unable to pay on time due to financial difficulties for rent?") +
-      #   theme(plot.title.position = "plot")
-
-    }
-  ),
+#   tar_target(
+#     arrears_rent, {
+#       bind_rows(
+#         # r_silc_2007,
+#         # r_silc_2008,
+#         # r_silc_2009,
+#         # r_silc_2010,
+#         # r_silc_2011,
+#         r_silc_2012,
+#         r_silc_2013,
+#         r_silc_2014,
+#         r_silc_2015,
+#         r_silc_2016,
+#         r_silc_2017,
+#         r_silc_2018,
+#         r_silc_2019,
+#         r_silc_2020,
+#         r_silc_2021,
+#         r_silc_2022,
+#         r_silc_2023
+#       ) %>%
+#         filter(grepl("Tenant", tenure_status)) %>%
+#         group_by(hh_id, country, year) %>%
+#         slice(1) %>%
+#         ungroup %>%
+#         group_by(year, country, arrears_mortgage_rent) %>%
+#         summarise(n = sum(hh_cross_weight)) %>%
+#         filter(!is.na(arrears_mortgage_rent)) %>%
+#         group_by(year, country) %>%
+#         mutate(pct = n / sum(n) * 100) %>%
+#         ggplot(., aes(x = year, y = pct, fill = arrears_mortgage_rent)) +
+#         geom_bar(stat = "identity") +
+#         scale_fill_viridis_d() +
+#         theme_minimal() +
+#         facet_geo(~country, grid = silc_countries_grid, label = "name") +
+#         labs(title = "Arrears on rent, tenants only",
+#              subtitle = "In the past twelve months, has the household been in arrears, i.e. has been unable to pay on time due to
+# financial difficulties for rent?",
+#              x = "", y = "", fill = "",
+#              caption = "Data: EU-SILC (2012-2023)"
+#         ) +
+#         scale_y_continuous(labels = scales::label_percent(scale = 1)) +
+#         theme(legend.position = "top",
+#               panel.grid.minor = element_blank())
+#     }
+#   ),
+#
+#   tar_target(
+#     arrears_rent_file,
+#     ggsave("figs/tenants_arrears_rent.png", arrears_rent,
+#            width = 11, height = 10, bg = "white")
+#   ),
+#
+#   tar_target(
+#     arrears_rent_without_no, {
+#       bind_rows(
+#         # r_silc_2007,
+#         # r_silc_2008,
+#         # r_silc_2009,
+#         # r_silc_2010,
+#         # r_silc_2011,
+#         r_silc_2012,
+#         r_silc_2013,
+#         r_silc_2014,
+#         r_silc_2015,
+#         r_silc_2016,
+#         r_silc_2017,
+#         r_silc_2018,
+#         r_silc_2019,
+#         r_silc_2020,
+#         r_silc_2021,
+#         r_silc_2022,
+#         r_silc_2023
+#       ) %>%
+#         filter(grepl("Tenant", tenure_status)) %>%
+#         group_by(hh_id, country, year) %>%
+#         slice(1) %>%
+#         ungroup %>%
+#         group_by(year, country, arrears_mortgage_rent) %>%
+#         summarise(n = sum(hh_cross_weight)) %>%
+#         filter(!is.na(arrears_mortgage_rent)) %>%
+#         group_by(year, country) %>%
+#         mutate(pct = n / sum(n) * 100) %>%
+#         ungroup %>%
+#         filter(arrears_mortgage_rent != "No") %>%
+#         ggplot(., aes(x = year, y = pct, fill = arrears_mortgage_rent)) +
+#         geom_bar(stat = "identity") +
+#         scale_fill_viridis_d() +
+#         theme_minimal() +
+#         facet_geo(~country, grid = silc_countries_grid, label = "name") +
+#         labs(title = "Arrears on rent, tenants only",
+#              subtitle = "In the past twelve months, has the household been in arrears, i.e. has been unable to pay on time due to
+#   financial difficulties for rent?",
+#   x = "", y = "", fill = "") +
+#         scale_y_continuous(labels = scales::label_percent(scale = 1)) +
+#         theme(legend.position = "top")
+#     }
+#   ),
+#
+#   tar_target(
+#     arrears_cartogram_en, {
+#       arrears_2023_df <- r_silc_2023 %>%
+#         filter(grepl("Tenant", tenure_status)) %>%
+#         group_by(hh_id, country, year) %>%
+#         slice(1) %>%
+#         ungroup %>%
+#         group_by(year, country, arrears_mortgage_rent) %>%
+#         summarise(n = sum(hh_cross_weight)) %>%
+#         filter(!is.na(arrears_mortgage_rent)) %>%
+#         mutate(arrears_mortgage_rent = factor(arrears_mortgage_rent,
+#                                               levels = c("Yes, twice or more",
+#                                                          "Yes, once", "No"))) %>%
+#         group_by(year, country) %>%
+#         mutate(pct = n / sum(n) * 100) %>%
+#         mutate(country = as.character(country))
+#
+#       head(arrears_2023_df)
+#       unique_countries <- unique(arrears_2023_df$country)
+#       pie_charts <- purrr::map_df(1:length(unique_countries), function(x) {
+#         p <- arrears_2023_df %>%
+#           filter(country == unique_countries[x]) %>%
+#           ggplot() +
+#           geom_col(aes(x = 1, y = pct, fill = arrears_mortgage_rent), width = 1) +
+#           scale_fill_viridis_d() +
+#           coord_polar(theta = "y") +
+#           theme_void() +
+#           theme(plot.margin = unit(c(0, 0, 0, 0),"cm"),
+#                 legend.position = "none")
+#
+#         p_grob <- ggplotGrob(p)
+#
+#         tibble(
+#           country = unique_countries[x],
+#           pie_chart = list(p_grob)
+#         )
+#       })
+#       #
+#       # pie_charts
+#       # world_map <- ne_countries(scale = 50, returnclass = 'sf')
+#       # europe_map <- world_map %>%
+#       #   # filter(featurecla == "Admin-0 country") %>%
+#       #   filter(iso_a2_eh %in% c(arrears_2023$country, "UK", "GB", "CH",
+#       #                           "RS", "BA", "GR", "BH", "UA", "MD", "MK",
+#       #                           "ME", "AL", "XK")) %>%
+#       #   left_join(., pie_charts, by = c("iso_a2_eh"="country")) %>%
+#       #   select(iso_a2_eh, pie_chart)
+#       #
+#       # europe_map2 <- europe_map %>%
+#       #   mutate(country_centroid_lon =
+#       #            st_coordinates(st_centroid(., of_largest_polygon = TRUE)$geometry)[, 1],
+#       #          country_centroid_lat =
+#       #            st_coordinates(st_centroid(., of_largest_polygon = TRUE)$geometry)[, 2],
+#       #          circle_area = as.numeric(st_area(.)),
+#       #          circle_radius = as.numeric(sqrt(circle_area/pi) / 110000))
+#       #
+#       # p_base_map <- ggplot() +
+#       #   geom_sf(data = europe_map2, fill = "gray80", color = alpha("black", 0.5)) +
+#       #   # geom_sf(data = cartogram_dorling, fill = alpha("#dfc27d", 0.8), color = alpha("#a6611a", 0.8)) +
+#       #   theme_void() +
+#       #   scale_x_continuous(limits = c(-10, 35)) +
+#       #   scale_y_continuous(limits = c(35, 65))
+#       #
+#       # valid_pie_charts <- europe_map2 %>%
+#       #   mutate(
+#       #     pie_is_null = purrr::map_lgl(pie_chart, is.null)
+#       #   ) %>%
+#       #   filter(!pie_is_null) %>%
+#       #   mutate(
+#       #     country_centroid_lon = case_when(
+#       #       iso_a2_eh == "NO" ~ country_centroid_lon - 3,
+#       #       iso_a2_eh == "DE" ~ country_centroid_lon - 0.6,
+#       #       TRUE ~ country_centroid_lon
+#       #     ),
+#       #     country_centroid_lat = case_when(
+#       #       iso_a2_eh == "NO" ~ country_centroid_lat - 2.8,
+#       #       iso_a2_eh == "FI" ~ country_centroid_lat - 1.5,
+#       #       iso_a2_eh == "SE" ~ country_centroid_lat - 1.5,
+#       #       TRUE ~ country_centroid_lat
+#       #     )
+#       #   )
+#       #
+#       # legend <- get_legend(
+#       #   arrears_2023 %>%
+#       #     filter(country == "AT") %>%
+#       #     ggplot() +
+#       #     geom_col(aes(x = 1, y = pct, fill = arrears_mortgage_rent), width = 1) +
+#       #     scale_fill_viridis_d() +
+#       #     coord_polar(theta = "y") +
+#       #     theme_void() +
+#       #     labs(fill = "")
+#       # )
+#       #
+#       # purrr::reduce(1:nrow(valid_pie_charts),
+#       #               .f = function(x, y){
+#       #                 x + annotation_custom(grob = valid_pie_charts$pie_chart[[y]],
+#       #                                       xmin = valid_pie_charts$country_centroid_lon[y] - valid_pie_charts$circle_radius[y],
+#       #                                       xmax = valid_pie_charts$country_centroid_lon[y] + valid_pie_charts$circle_radius[y],
+#       #                                       ymin = valid_pie_charts$country_centroid_lat[y] - valid_pie_charts$circle_radius[y],
+#       #                                       ymax = valid_pie_charts$country_centroid_lat[y] + valid_pie_charts$circle_radius[y])},
+#       #               .init = p_base_map) +
+#       #   annotation_custom(grob = legend,
+#       #                     xmin = -8,
+#       #                     xmax = -8,
+#       #                     ymin = 65,
+#       #                     ymax = 65) +
+#       #   labs(caption = "Data: EU-SILC 2023",
+#       #        title = "Arrears on rent among tenants",
+#       #        subtitle = "In the past twelve months, has the household been in arrears,\ni.e. has been unable to pay on time due to financial difficulties for rent?") +
+#       #   theme(plot.title.position = "plot")
+#
+#     }
+#   ),
   #
   # tar_target(
   #   arrears_cartogram_en_file,

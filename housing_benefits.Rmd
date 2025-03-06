@@ -18,8 +18,16 @@ library(haven)
 
 ## Housing precarity
 
+```{r}
+tar_load(silc_merged)
+tar_load(silc_merged_households)
+```
+
+
 Groups:
 - precarity by income groups
+  - [x] income quantiles (within country)
+  - [ ] equalized income quantiles (within country)
 - precarity by economic activity (pensioners vs. econ. active)
 - precarity by housing tenure (owners vs. tenants)
 
