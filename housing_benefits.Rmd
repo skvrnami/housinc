@@ -23,25 +23,11 @@ tar_load(silc_merged)
 tar_load(silc_merged_households)
 ```
 
-
-Groups:
-- precarity by income groups
-  - [x] income quantiles (within country)
-  - [ ] equalized income quantiles (within country)
-- precarity by economic activity (pensioners vs. econ. active)
-- precarity by housing tenure (owners vs. tenants)
-
-Time:
-- increase during energy crisis/inflation
-- time vs. income
-- time vs. econ. activity
-- time vs. age
-
-
 ## Effect of housing benefits on housing overburden
 
 Comparison of housing precarity dimensions with and without housing benefits can be made easily only for housing overburden (by calculating overburden based on income with housing benefits and without housing benefits). This assumes that the households would not move if they did not receive housing benefits.
 Comparison of other dimensions require some modelling. 
+
 ```{r, fig.width=10, fig.height=10}
 tar_load(all_silc_households)
 all_silc_households %>% 
@@ -61,6 +47,42 @@ all_silc_households %>%
        colour = "") + 
   theme(legend.position = "top")
 ```
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb) %>% 
+  pivot_longer(., cols = c(income_share_on_housing, income_share_on_housing_wo_hb), 
+               names_to = "income_type", values_to = "income_share_on_housing") %>% 
+  mutate(income_type = if_else(income_type == "income_share_on_housing", 
+                               "With housing benefits", 
+                               "Without housing benefits")) %>% 
+  ggplot(., aes(x = income_share_on_housing, colour = income_type)) + 
+  geom_density() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Income share on housing", y = "Density", colour = "Income") + 
+  theme(legend.position = "top")
+  
+```
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb, 
+         hh_cross_weight) %>% 
+  mutate(diff_pp = income_share_on_housing_wo_hb - income_share_on_housing) %>% 
+  group_by(country) %>% 
+  summarise(mean_reduction_income_share = wtd.mean(diff_pp, hh_cross_weight, 
+                                                   na.rm = TRUE)) %>% 
+  arrange(desc(mean_reduction_income_share)) %>% 
+  knitr::kable(., digits = 2, col.names = c("Country", "Mean reduction of income share on housing (perc. points)"))
+  
+```
+
+### Tenants
 
 ```{r, fig.width=10, fig.height=10}
 tar_load(all_silc_households_tenants)
@@ -85,6 +107,47 @@ all_silc_households_tenants %>%
 
 ```
 
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(tenure_status %in% c("Tenant, rent at market price", 
+                              "Tenant, rent at reduced price", 
+                              "Tenant, rent free")) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb) %>% 
+  pivot_longer(., cols = c(income_share_on_housing, income_share_on_housing_wo_hb), 
+               names_to = "income_type", values_to = "income_share_on_housing") %>% 
+  mutate(income_type = if_else(income_type == "income_share_on_housing", 
+                               "With housing benefits", 
+                               "Without housing benefits")) %>% 
+  ggplot(., aes(x = income_share_on_housing, colour = income_type)) + 
+  geom_density() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Income share on housing", y = "Density", colour = "Income") + 
+  theme(legend.position = "top")
+  
+```
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(tenure_status %in% c("Tenant, rent at market price", 
+                              "Tenant, rent at reduced price", 
+                              "Tenant, rent free")) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb, 
+         hh_cross_weight) %>% 
+  mutate(diff_pp = income_share_on_housing_wo_hb - income_share_on_housing) %>% 
+  group_by(country) %>% 
+  summarise(mean_reduction_income_share = wtd.mean(diff_pp, hh_cross_weight, 
+                                                   na.rm = TRUE)) %>% 
+  arrange(desc(mean_reduction_income_share)) %>% 
+  knitr::kable(., digits = 2, col.names = c("Country", "Mean reduction of income share on housing (perc. points)"))
+```
+
+### Owners
+
 ```{r, fig.width=10, fig.height=10}
 tar_load(all_silc_households_owners)
 all_silc_households_owners %>% 
@@ -106,6 +169,45 @@ all_silc_households_owners %>%
        colour = "") + 
   theme(legend.position = "top")
 ```
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(tenure_status %in% c("Owner without outstanding mortgage", 
+                              "Owner with outstanding mortgage")) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb) %>% 
+  pivot_longer(., cols = c(income_share_on_housing, income_share_on_housing_wo_hb), 
+               names_to = "income_type", values_to = "income_share_on_housing") %>% 
+  mutate(income_type = if_else(income_type == "income_share_on_housing", 
+                               "With housing benefits", 
+                               "Without housing benefits")) %>% 
+  ggplot(., aes(x = income_share_on_housing, colour = income_type)) + 
+  geom_density() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Income share on housing", y = "Density", colour = "Income") + 
+  theme(legend.position = "top")
+```
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(tenure_status %in% c("Owner without outstanding mortgage", 
+                              "Owner with outstanding mortgage")) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb, 
+         hh_cross_weight) %>% 
+  mutate(diff_pp = income_share_on_housing_wo_hb - income_share_on_housing) %>% 
+  group_by(country) %>% 
+  summarise(mean_reduction_income_share = wtd.mean(diff_pp, hh_cross_weight, 
+                                                   na.rm = TRUE)) %>% 
+  arrange(desc(mean_reduction_income_share)) %>% 
+  knitr::kable(., digits = 2, col.names = c("Country", "Mean reduction of income share on housing (perc. points)"))
+
+```
+
+### All
 
 ```{r}
 diff_all <- all_silc_households %>% 
@@ -142,6 +244,136 @@ purrr::reduce(list(diff_all, diff_tenants, diff_owners),
                                 "Ratio"), 
                digits = 2)
 ```
+
+### Income quantiles
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  group_by(country, year, income_disposable_eqi_quantile) %>% 
+  filter(!is.na(income_disposable_eqi_quantile)) %>% 
+  summarise(housing_overburden = 
+              wtd.mean(housing_overburden, hh_cross_weight, 
+                       na.rm = TRUE), 
+            housing_overburden_wo_hb = 
+              wtd.mean(housing_overburden_wo_hb, hh_cross_weight, 
+                       na.rm = TRUE), .groups = "drop") %>% 
+  select(country, year, income_disposable_eqi_quantile, 
+         housing_overburden, housing_overburden_wo_hb) %>% 
+  pivot_longer(., cols = c(housing_overburden, 
+         housing_overburden_wo_hb), names_to = "overburden", 
+         values_to = "share") %>% 
+  filter(overburden == "housing_overburden") %>% 
+  ggplot(., aes(x = year, y = share, 
+                colour = income_disposable_eqi_quantile
+                # shape = overburden
+                )) + 
+  geom_point(alpha = 0.8) + 
+  scale_colour_viridis_d() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::label_percent(scale = 100)) + 
+  labs(x = "Year", y = "Share of households", 
+       title = "Housing overburden", 
+       colour = "Equalised disposable income") + 
+  theme(legend.position = "top")
+  
+```
+
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(!is.na(income_disposable_eqi_quantile)) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb, income_disposable_eqi_quantile, 
+         hh_cross_weight) %>% 
+  mutate(diff_pp = income_share_on_housing_wo_hb - income_share_on_housing) %>% 
+  group_by(country, income_disposable_eqi_quantile) %>% 
+  summarise(mean_reduction_income_share = wtd.mean(diff_pp, hh_cross_weight, 
+                                                   na.rm = TRUE)) %>% 
+  ggplot(., aes(x = income_disposable_eqi_quantile, y = mean_reduction_income_share)) + 
+  geom_point() + 
+  coord_flip() + 
+  facet_wrap(~country) + 
+  theme_minimal() + 
+  labs(y = "Mean reduction of income share on housing (perc. points)", 
+       x = "Quantile of equalised disposable income")
+
+```
+
+### Economic activity
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  group_by(country, year, econ_status) %>% 
+  filter(!is.na(econ_status)) %>% 
+  # filter(econ_status != "Other") %>% 
+  mutate(econ_status = case_when(
+    econ_status == "Employed" ~ "Employed",
+    econ_status == "Retired" ~ "Retired",
+    econ_status %in% c("Unemployed", "Fulfilling domestic tasks", 
+                       "Unable to work due to health problems") ~ "Inactive (unemployed, unable to work, at home)",
+    econ_status %in% c("Student", "Other") ~ "Other",
+  )) %>% 
+  summarise(housing_overburden = 
+              wtd.mean(housing_overburden, hh_cross_weight, 
+                       na.rm = TRUE), 
+            housing_overburden_wo_hb = 
+              wtd.mean(housing_overburden_wo_hb, hh_cross_weight, 
+                       na.rm = TRUE), .groups = "drop") %>% 
+  select(country, year, econ_status, 
+         housing_overburden, housing_overburden_wo_hb) %>% 
+  pivot_longer(., cols = c(housing_overburden, 
+         housing_overburden_wo_hb), names_to = "overburden", 
+         values_to = "share") %>% 
+  filter(overburden == "housing_overburden") %>% 
+  ggplot(., aes(x = year, y = share, 
+                colour = econ_status
+                # shape = overburden
+                )) + 
+  geom_point(alpha = 0.8) + 
+  scale_colour_viridis_d() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::label_percent(scale = 100)) + 
+  labs(x = "Year", y = "Share of households", 
+       title = "Housing overburden", 
+       colour = "Econ. status") + 
+  theme(legend.position = "top")
+```
+
+
+```{r}
+silc_merged_households %>% 
+  ungroup() %>% 
+  filter(year == 2023) %>% 
+  filter(!is.na(econ_status)) %>% 
+  select(country, hh_id, income_share_on_housing, income_share_on_housing_wo_hb, econ_status, 
+         hh_cross_weight) %>% 
+  mutate(diff_pp = income_share_on_housing_wo_hb - income_share_on_housing) %>% 
+  group_by(country, econ_status) %>% 
+  summarise(mean_reduction_income_share = 
+              wtd.mean(diff_pp, hh_cross_weight, na.rm = TRUE)) %>% 
+  ggplot(., aes(x = econ_status, y = mean_reduction_income_share)) + 
+  geom_point() + 
+  coord_flip() + 
+  facet_wrap(~country) + 
+  theme_minimal() + 
+  labs(y = "Mean reduction of income share on housing (perc. points)", 
+       x = "Econ. status")
+
+```
+
+### Age
+```{r}
+# TODO:
+```
+
+### Education
+```{r}
+# TODO:
+```
+
 
 ## Models of housing overburden
 

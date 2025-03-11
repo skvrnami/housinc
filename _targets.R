@@ -15,6 +15,13 @@ tar_option_set(
 
 tar_source()
 
+# TODO: přidat DB100: DEGREE OF URBANISATION
+# TODO: přidat DB040: REGION OF RESIDENCE
+# HC001: HEATING SYSTEM USED
+# HC002: MAIN ENERGY SOURCE
+# HC003: RENOVATION (THERMAL INSULATION, WINDOWS OR HEATING SYSTEM)
+# HC060: INABILITY TO KEEP THE DWELLING COMFORTABLY WARM DURING WINTER
+
 # Replace the target list below with your own:
 list(
   tar_target(
@@ -662,6 +669,7 @@ list(
         `Unique IDs` = is_unique(hh_id, person_id, country),
         `Weight is not missing` = !is.na(hh_cross_weight),
         `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
+        `Housing costs above 0` = total_housing_cost > 0,
         # share on housing with benefits is lower than share on housing without benefits
         `Share w/ benefits <= Share w/o benefits` = income_share_on_housing <= income_share_on_housing_wo_hb,
         `N of hh members` = (n_above13 + n_below13) == n_members,

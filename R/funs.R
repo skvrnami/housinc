@@ -217,6 +217,7 @@ recode_vars <- function(df, r_rooms){
       allowance_housing = if_else(allowance_housing < 0, 0, allowance_housing)
     ) %>%
     mutate(
+      total_housing_cost = if_else(total_housing_cost < 0, 0, total_housing_cost),
       overcrowded_eurostat = as.numeric(required_rooms > rooms),
       overcrowded_simple = as.numeric(n_persons > rooms),
       income_share_on_housing = total_housing_cost /
