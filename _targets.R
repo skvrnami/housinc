@@ -15,14 +15,31 @@ tar_option_set(
 
 tar_source()
 
+# TODO: jak funguje panel?
+
 # TODO: přidat DB100: DEGREE OF URBANISATION
 # TODO: přidat DB040: REGION OF RESIDENCE
 # HC001: HEATING SYSTEM USED
 # HC002: MAIN ENERGY SOURCE
 # HC003: RENOVATION (THERMAL INSULATION, WINDOWS OR HEATING SYSTEM)
 # HC060: INABILITY TO KEEP THE DWELLING COMFORTABLY WARM DURING WINTER
+# Work intensity
+# PL145: FULL OR PART-TIME MAIN JOB (SELF-DEFINED)
+# PL060: NUMBER OF HOURS USUALLY WORKED PER WEEK IN THE MAIN JOB
+# PL073: NUMBER OF MONTHS SPENT IN FULL-TIME WORK AS EMPLOYEE
+# PL074: NUMBER OF MONTHS SPENT IN PART-TIME WORK AS EMPLOYEE
+# PL075: NUMBER OF MONTHS SPENT IN FULL-TIME WORK AS SELF-EMPLOYED [INCLUDING FAMILY WORKER]
+# PL076: NUMBER OF MONTHS SPENT IN PART-TIME WORK AS SELF-EMPLOYED [INCLUDING FAMILY WORKER]
+# PL080: NUMBER OF MONTHS SPENT IN UNEMPLOYMENT
+# PL085: NUMBER OF MONTHS SPENT IN RETIREMENT
+# PL086: NUMBER OF MONTHS UNABLE TO WORK DUE TO LONG-STANDING HEALTH PROBLEMS
+# PL087: NUMBER OF MONTHS SPENT STUDYING
+# PL088: NUMBER OF MONTHS SPENT IN COMPULSORY MILITARY SERVICE
+# PL089: NUMBER OF MONTHS SPENT FULFILLING DOMESTIC TASKS
+# PL090: NUMBER OF MONTHS SPENT IN OTHER INACTIVITY
+# PL100: TOTAL NUMBER OF HOURS PER WEEK USUALLY WORKED IN THE SECOND, THIRD,..JOBS
+# https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Persons_living_in_households_with_low_work_intensity
 
-# Replace the target list below with your own:
 list(
   tar_target(
     codebook,
@@ -673,7 +690,8 @@ list(
         # share on housing with benefits is lower than share on housing without benefits
         `Share w/ benefits <= Share w/o benefits` = income_share_on_housing <= income_share_on_housing_wo_hb,
         `N of hh members` = (n_above13 + n_below13) == n_members,
-        `Econ_status` = !is.na(econ_status)
+        `Econ_status` = !is.na(econ_status),
+        `Consumption units` = !is.na(consumption_units)
       )
     }
   ),
@@ -1766,6 +1784,72 @@ list(
   #          bg = "white")
   # ),
 
+  # SILC panel data ---------------------------------------
+  tar_target(silc_2023_panel, {
+    r_df <- load_r_file_long("data/silc_long/2023/SILC_2023_R.rds")
+    p_df <- readRDS("data/silc_long/2023/SILC_2023_P.rds") %>%
+      mutate(PE041 = as.numeric(as.character(PE041))) %>%
+      select_and_rename_personal()
+    cu <- calculate_consumption_units_long(r_df)
+
+    tmp <- readRDS("data/silc_long/2023/SILC_2023_H.rds") %>%
+      add_long_weights(., "data/silc_long/2023/SILC_2023_D.rds") %>%
+      select_and_rename_vars(., rename_lookup)
+
+    tmp %>%
+      merge_personal_df(., p_df) %>%
+      merge_register_df(., r_df)
+  }),
+
+  tar_target(req_rooms_panel, {
+    silc_2023_panel %>%
+      mutate(sex = as.numeric(sex)) %>%
+      calculate_required_rooms()
+  }),
+
+  tar_target(r_silc_2023_panel, {
+    thc <- silc_merged %>%
+      filter(year >= 2018) %>%
+      select(year, country, hh_id, total_housing_cost) %>%
+      as_factor()
+    silc_2023_panel %>%
+      left_join(., thc, by = c("year", "country", "hh_id")) %>%
+      recode_vars(., req_rooms_panel) %>%
+      label_vars(., codebook) %>%
+      recode_takeup()
+  }),
+
+  tar_target(
+    rules_long, {
+      validator(
+        `Unique IDs` = is_unique(hh_id, person_id, country),
+        `Weight is not missing` = !is.na(hh_long_weight),
+        `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
+        `Housing costs above 0` = total_housing_cost > 0,
+        # share on housing with benefits is lower than share on housing without benefits
+        `Share w/ benefits <= Share w/o benefits` = income_share_on_housing <= income_share_on_housing_wo_hb,
+        `N of hh members` = (n_above13 + n_below13) == n_members,
+        `Econ_status` = !is.na(econ_status),
+        `Consumption units` = !is.na(consumption_units)
+      )
+    }
+  ),
+
+  tar_target(
+    validation_silc_2023_panel,
+    confront(silc_2023_panel, rules_long)
+  ),
+
+  # Analyses ------------------------------
+  tar_render(
+    hb_cross,
+    "housing_benefits.Rmd"
+  ),
+
+  tar_render(
+    hb_panel,
+    "panel_housing_benefits.Rmd"
+  ),
 
   NULL
 

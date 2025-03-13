@@ -12,9 +12,22 @@ add_weights <- function(df, path){
               relationship = "one-to-one")
 }
 
+add_long_weights <- function(df, path){
+  weights <- readRDS(path) %>%
+    select(DB010, DB020, DB030, hh_long_weight = DB095)
+
+  df %>%
+    left_join(., weights,
+              by = c("HB010"="DB010", "HB020"="DB020",
+                     "HB030"="DB030"),
+              relationship = "one-to-one")
+}
+
 load_r_file <- function(path){
   if(grepl("sav$", path)){
     tmp <- read_sav(path)
+  }else if(grepl("rds$", path)){
+    tmp <- readRDS(path)
   }else{
     tmp <- read_dta(path)
   }
@@ -54,6 +67,52 @@ load_r_file <- function(path){
       age = if_else(is.na(age), year - birth_year, age)
     )
 }
+
+load_r_file_long <- function(path){
+  if(grepl("sav$", path)){
+    tmp <- read_sav(path)
+  }else if(grepl("rds$", path)){
+    tmp <- readRDS(path)
+  }else{
+    tmp <- read_dta(path)
+  }
+
+  if("RX010" %in% colnames(tmp) & !"RB082" %in% colnames(tmp)){
+    tmp <- tmp %>%
+      rename(age = RX010)
+  }
+
+  if("RB082" %in% colnames(tmp)){
+    tmp <- tmp %>%
+      rename(age = RB082)
+  }
+
+  tmp %>%
+    mutate(
+      person_id = RB030,
+      hh_id = RB040,
+      has_partner = as.numeric(RB240_F == 1),
+      partner_id = RB240,
+      father_id = RB220,
+      mother_id = RB230,
+      partner_in_same_household = floor(partner_id / 100) == hh_id,
+      couple = as.numeric(has_partner & partner_in_same_household)
+    ) %>%
+    select(person_id, hh_id, year = RB010, country = RB020,
+           couple, birth_year = RB080, partner_id,
+           has_partner, partner_in_same_household,
+           father_id, mother_id,
+           age,
+           sex = RB090) %>%
+    mutate(
+      age = as.numeric(age),
+      birth_year = as.numeric(birth_year)
+    ) %>%
+    mutate(
+      age = if_else(is.na(age), year - birth_year, age)
+    )
+}
+
 
 merge_register_df <- function(df1, r_df){
   full_join(df1, r_df, by = c("year", "country", "hh_id", "person_id"),
@@ -431,12 +490,116 @@ add_income_quantiles <- function(tmp){
 
 }
 
+add_income_quantiles_long <- function(tmp, weight_quantiles = TRUE){
+  tmp <- tmp %>%
+    mutate(income_disposable_eqi = income_disposable / consumption_units)
+
+  if(weight_quantiles){
+    quantiles <- tmp %>%
+      group_by(country, year) %>%
+      summarise(
+        p20 = wtd.quantile(income_disposable, hh_long_weight, probs = c(0.2), na.rm = TRUE),
+        p40 = wtd.quantile(income_disposable, hh_long_weight, probs = c(0.4), na.rm = TRUE),
+        p50 = wtd.quantile(income_disposable, hh_long_weight, probs = c(0.5), na.rm = TRUE),
+        p60 = wtd.quantile(income_disposable, hh_long_weight, probs = c(0.6), na.rm = TRUE),
+        p80 = wtd.quantile(income_disposable, hh_long_weight, probs = c(0.8), na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    quantiles_eqi <- tmp %>%
+      group_by(country, year) %>%
+      summarise(
+        p20_eqi = wtd.quantile(income_disposable_eqi, hh_long_weight, probs = c(0.2), na.rm = TRUE),
+        p40_eqi = wtd.quantile(income_disposable_eqi, hh_long_weight, probs = c(0.4), na.rm = TRUE),
+        p50_eqi = wtd.quantile(income_disposable_eqi, hh_long_weight, probs = c(0.5), na.rm = TRUE),
+        p60_eqi = wtd.quantile(income_disposable_eqi, hh_long_weight, probs = c(0.6), na.rm = TRUE),
+        p80_eqi = wtd.quantile(income_disposable_eqi, hh_long_weight, probs = c(0.8), na.rm = TRUE),
+        .groups = "drop"
+      )
+  }else{
+    quantiles <- tmp %>%
+      group_by(country, year) %>%
+      summarise(
+        p20 = quantile(income_disposable, probs = c(0.2), na.rm = TRUE),
+        p40 = quantile(income_disposable, probs = c(0.4), na.rm = TRUE),
+        p50 = quantile(income_disposable, probs = c(0.5), na.rm = TRUE),
+        p60 = quantile(income_disposable, probs = c(0.6), na.rm = TRUE),
+        p80 = quantile(income_disposable, probs = c(0.8), na.rm = TRUE),
+        .groups = "drop"
+      )
+
+    quantiles_eqi <- tmp %>%
+      group_by(country, year) %>%
+      summarise(
+        p20_eqi = quantile(income_disposable_eqi, probs = c(0.2), na.rm = TRUE),
+        p40_eqi = quantile(income_disposable_eqi, probs = c(0.4), na.rm = TRUE),
+        p50_eqi = quantile(income_disposable_eqi, probs = c(0.5), na.rm = TRUE),
+        p60_eqi = quantile(income_disposable_eqi, probs = c(0.6), na.rm = TRUE),
+        p80_eqi = quantile(income_disposable_eqi, probs = c(0.8), na.rm = TRUE),
+        .groups = "drop"
+      )
+  }
+
+  tmp %>%
+    left_join(., quantiles, by = c("country", "year")) %>%
+    left_join(., quantiles_eqi, by = c("country", "year")) %>%
+    mutate(
+      income_disposable_quantile = case_when(
+        income_disposable <= p20 ~ "1st quantile (lowest)",
+        income_disposable <= p40 ~ "2nd quantile",
+        income_disposable <= p60 ~ "3rd quantile",
+        income_disposable <= p80 ~ "4th quantile",
+        income_disposable > p80 ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)")),
+      income_disposable_median = if_else(
+        income_disposable <= p50, "Under median", "Above median"
+      ) %>% factor(., levels = c("Under median", "Above median")),
+      income_disposable_eqi_quantile = case_when(
+        income_disposable_eqi <= p20_eqi ~ "1st quantile (lowest)",
+        income_disposable_eqi <= p40_eqi ~ "2nd quantile",
+        income_disposable_eqi <= p60_eqi ~ "3rd quantile",
+        income_disposable_eqi <= p80_eqi ~ "4th quantile",
+        income_disposable_eqi > p80_eqi ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)")),
+      income_disposable_eqi_median = if_else(
+        income_disposable_eqi <= p50_eqi, "Under median", "Above median"
+      ) %>% factor(., levels = c("Under median", "Above median"))
+    )
+
+}
+
+
 calculate_consumption_units <- function(r_df){
   cu <- r_df %>%
     mutate(age = (year - 1) - birth_year,
            above13 = age > 13,
            below13 = age <= 13) %>%
     group_by(country, hh_id) %>%
+    summarise(
+      n_above13 = sum(above13),
+      n_below13 = sum(below13),
+      n_members = n(),
+      .groups = "drop"
+    )
+
+  cu %>%
+    mutate(consumption_units = 1 + (n_above13 - 1) * 0.5 + n_below13 * 0.3)
+}
+
+calculate_consumption_units_long <- function(r_df){
+  cu <- r_df %>%
+    mutate(age = (year - 1) - birth_year,
+           above13 = age > 13,
+           below13 = age <= 13) %>%
+    group_by(country, hh_id, year) %>%
     summarise(
       n_above13 = sum(above13),
       n_below13 = sum(below13),

@@ -1,0 +1,133 @@
+---
+title: "Panel analysis"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidyr)
+library(Hmisc)
+library(ggplot2)
+library(targets)
+```
+
+```{r}
+tar_load(silc_2023_panel)
+
+silc_2023_panel_hh <- silc_2023_panel %>% 
+  group_by(hh_id, country, year) %>% 
+  slice(1) %>% 
+  ungroup()
+
+pct_benefits <- silc_2023_panel %>% 
+  group_by(hh_id, country, year) %>% 
+  slice(1) %>% 
+  mutate(housing_allowance_takeup = allowance_housing > 0) %>% 
+  ungroup %>% 
+  group_by(country, year) %>% 
+  summarise(housing_benefits_share = mean(housing_allowance_takeup, na.rm = TRUE))
+
+ggplot(pct_benefits, aes(x = year, y = housing_benefits_share)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  theme_minimal() + 
+  labs(x = "Year", y = "Share of households", 
+       # title = "Housing overburden", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+
+### Rent increases
+```{r}
+rent_increase <- silc_2023_panel_hh %>% 
+  filter(!is.na(rent)) %>% 
+  group_by(hh_id) %>% 
+  mutate(rent_increase = rent / lag(rent)) %>% 
+  group_by(country, year) %>% 
+  summarise(
+    mean_rent_increase = mean(rent_increase, na.rm = TRUE), 
+    median_rent_increase = median(rent_increase, na.rm = TRUE)  
+  )
+
+ggplot(rent_increase, aes(x = year, y = mean_rent_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+
+ggplot(rent_increase, aes(x = year, y = median_rent_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+```{r}
+tar_load(silc_merged_households)
+
+# silc_merged_households %>% 
+  
+rent_increases_merged <- silc_merged_households %>% 
+  filter(!is.na(rent)) %>% 
+  group_by(country, hh_id) %>% 
+  mutate(rent_increase = rent / lag(rent), 
+         total_housing_cost_increase = total_housing_cost / 
+           lag(total_housing_cost)) %>% 
+  group_by(country, year) %>% 
+  summarise(
+    mean_rent_increase = mean(rent_increase, na.rm = TRUE), 
+    median_rent_increase = median(rent_increase, na.rm = TRUE), 
+    mean_thc_increase = mean(total_housing_cost_increase, na.rm = TRUE), 
+    median_thc_increase = median(total_housing_cost_increase, na.rm = TRUE)  
+  )
+
+ggplot(rent_increases_merged, aes(x = year, y = mean_rent_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+
+ggplot(rent_increases_merged, aes(x = year, y = median_rent_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+```{r}
+ggplot(rent_increases_merged, aes(x = year, y = mean_thc_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+
+ggplot(rent_increases_merged, aes(x = year, y = median_thc_increase)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  theme_minimal() + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+

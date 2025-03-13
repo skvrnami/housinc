@@ -382,3 +382,61 @@ I want to estimate housing overburden/share of income on housing
 
 ```
 
+
+## Housing benefits takeup 
+```{r}
+benefits_takeup <- silc_merged_households %>% 
+  group_by(country, year) %>% 
+  summarise(housing_allowance_takeup_pct = wtd.mean(takeup_allowance_housing, hh_cross_weight))
+
+ggplot(benefits_takeup, aes(x = year, y = housing_allowance_takeup_pct)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  theme_minimal() + 
+  labs(y = "Share of households", 
+       x = "Year")
+```
+
+### Tenants
+```{r}
+benefits_takeup_tenants <- silc_merged_households %>% 
+  filter(tenure_status %in% c("Tenant, rent at market price", 
+                              "Tenant, rent at reduced price", 
+                              "Tenant, rent free")) %>% 
+  group_by(country, year) %>% 
+  summarise(housing_allowance_takeup_pct = wtd.mean(takeup_allowance_housing, hh_cross_weight), 
+            .groups = "drop")
+
+ggplot(benefits_takeup_tenants, 
+       aes(x = year, y = housing_allowance_takeup_pct)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  theme_minimal() + 
+  labs(y = "Share of households", 
+       x = "Year")
+```
+
+### Owners
+```{r}
+benefits_takeup_owners <- silc_merged_households %>% 
+  filter(tenure_status %in% c("Owner without outstanding mortgage", 
+                              "Owner with outstanding mortgage")) %>% 
+  group_by(country, year) %>% 
+  summarise(housing_allowance_takeup_pct = wtd.mean(takeup_allowance_housing, hh_cross_weight), 
+            .groups = "drop")
+
+ggplot(benefits_takeup_owners, 
+       aes(x = year, y = housing_allowance_takeup_pct)) + 
+  geom_point() + 
+  geom_line() + 
+  facet_wrap(~country, scales = "free_y") + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  theme_minimal() + 
+  labs(y = "Share of households", 
+       x = "Year")
+```
+
