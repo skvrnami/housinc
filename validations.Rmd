@@ -66,4 +66,9 @@ summary(validation_silc_2022)
 plot(validation_silc_2023)
 summary(validation_silc_2023)
 ```
+### Panel data
+```{r}
+plot(validation_silc_2023_panel)
+summary(validation_silc_2023_panel)
+```
 

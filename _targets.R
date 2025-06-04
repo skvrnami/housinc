@@ -17,33 +17,19 @@ tar_source()
 
 # TODO: jak funguje panel?
 
-# TODO: přidat DB100: DEGREE OF URBANISATION
-# TODO: přidat DB040: REGION OF RESIDENCE
-# HC001: HEATING SYSTEM USED
-# HC002: MAIN ENERGY SOURCE
-# HC003: RENOVATION (THERMAL INSULATION, WINDOWS OR HEATING SYSTEM)
-# HC060: INABILITY TO KEEP THE DWELLING COMFORTABLY WARM DURING WINTER
 # Work intensity
-# PL145: FULL OR PART-TIME MAIN JOB (SELF-DEFINED)
-# PL060: NUMBER OF HOURS USUALLY WORKED PER WEEK IN THE MAIN JOB
-# PL073: NUMBER OF MONTHS SPENT IN FULL-TIME WORK AS EMPLOYEE
-# PL074: NUMBER OF MONTHS SPENT IN PART-TIME WORK AS EMPLOYEE
-# PL075: NUMBER OF MONTHS SPENT IN FULL-TIME WORK AS SELF-EMPLOYED [INCLUDING FAMILY WORKER]
-# PL076: NUMBER OF MONTHS SPENT IN PART-TIME WORK AS SELF-EMPLOYED [INCLUDING FAMILY WORKER]
-# PL080: NUMBER OF MONTHS SPENT IN UNEMPLOYMENT
-# PL085: NUMBER OF MONTHS SPENT IN RETIREMENT
-# PL086: NUMBER OF MONTHS UNABLE TO WORK DUE TO LONG-STANDING HEALTH PROBLEMS
-# PL087: NUMBER OF MONTHS SPENT STUDYING
-# PL088: NUMBER OF MONTHS SPENT IN COMPULSORY MILITARY SERVICE
-# PL089: NUMBER OF MONTHS SPENT FULFILLING DOMESTIC TASKS
-# PL090: NUMBER OF MONTHS SPENT IN OTHER INACTIVITY
-# PL100: TOTAL NUMBER OF HOURS PER WEEK USUALLY WORKED IN THE SECOND, THIRD,..JOBS
 # https://ec.europa.eu/eurostat/statistics-explained/index.php?title=Glossary:Persons_living_in_households_with_low_work_intensity
 
 list(
   tar_target(
+    codebook_path,
+    "data/codebook.xlsx",
+    format = "file"
+  ),
+
+  tar_target(
     codebook,
-    read_excel("data/codebook.xlsx") %>%
+    read_excel(codebook_path) %>%
       fill(., everything(), .direction = "down")
   ),
 
@@ -60,14 +46,20 @@ list(
       ability_to_keep_warm = "HH050",
       ability_to_make_ends = "HS120",
       capacity_to_face_expenses = "HS060",
+      capacity_to_afford_holiday = "HS040",
+      capacity_to_afford_meat = "HS050",
+      capacity_to_replace_furniture = "HD080",
+      have_car = "HS110",
       rent = "HH060",
       total_housing_cost = "HH070",
+      mortgage_principal_payment = "HH071",
       fin_burden_debt = "HS150",
       income_gross = "HY010",
       income_disposable = "HY020",
       allowance_family = "HY050N",
       allowance_social = "HY060N",
       allowance_housing = "HY070N",
+      income_capital = "HY090N",
       tenure_status = "HH021",
       arrears_mortgage_rent = "HS011",
       arrears_utility = "HS021",
@@ -82,6 +74,7 @@ list(
       probs_crime = "HS190",
       reduced_utility_cost = "HS022",
       shortage_of_space = "HC010",
+      dwelling_size_m2 = "HC020",
       immediate_risk_dwelling_change = "HC150",
       main_reasons_leaving_dwelling = "HC160",
       access_grocery = "HC090",
@@ -89,12 +82,156 @@ list(
       access_postal = "HC110",
       access_transport = "HC120",
       access_healthcare = "HC130",
-      ability_to_keep_cool = "HC070",
-      heating_sytem = "HC001"
+      ability_to_keep_warm_in_winter = "HC060",
+      ability_to_keep_cool_in_summer = "HC070",
+      heating_sytem = "HC001",
+      main_energy_source = "HC002",
+      renovated_in_past_5_years = "HC003",
+      imputed_rent = "HY030G",
+      gross_income_from_rent = "HY040G",
+      gross_income_social_exclusion = "HY060G",
+      gross_income_interhousehold_transfers = "HY080G",
+      gross_income_interest = "HY090G",
+      gross_income_people_under_16 = "HY110G",
+      tax_wealth = "HY120G",
+      expense_interhousehold_transfers = "HY130G",
+      tax_income = "HY140G",
+      total_disposable_income_before_social_transfers = "HY022"
+
     )
   ),
 
+  tar_target(hh_cols, {
+    c("hh_cross_weight", "income_gross",
+      "income_disposable", "allowance_family",
+      "allowance_social", "allowance_housing",
+      "arrears_mortgage_rent", "arrears_utility",
+      "reduced_utility_cost", "arrears_other",
+      "capacity_to_face_expenses", "ability_to_make_ends",
+      "fin_burden_debt", "dwelling_type",
+      "tenure_status", "rooms",
+      "ability_to_keep_warm", "rent",
+      "total_housing_cost", "probs_too_dark",
+      "probs_noise", "fin_burden_housing",
+      "probs_pollution", "probs_crime",
+      "leaks_damp", "bath_shower",
+      "toilet", "heating_sytem",
+      "ability_to_keep_cool",
+      "n_above13", "n_below13",
+      "n_members", "consumption_units",
+      "income_disposable_eqi",
+      "p20", "p40", "p50", "p60", "p80",
+      "p20_eqi", "p40_eqi", "p50_eqi", "p60_eqi", "p80_eqi",
+      "income_disposable_quantile", "income_disposable_median",
+      "income_disposable_eqi_quantile", "income_disposable_eqi_median")
+  }),
+
   # SILC data ---------------------------------------------------------------
+  tar_target(
+    silc_2004, {
+      year <- "2004"
+      r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
+      p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
+        select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
+      read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
+        add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
+        select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
+        merge_personal_df(., p_df) %>%
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
+    }
+  ),
+
+  tar_target(
+    r_rooms_2004, {
+      calculate_required_rooms(silc_2004)
+    }
+  ),
+
+  tar_target(
+    r_silc_2004, {
+      recode_vars(silc_2004, r_rooms_2004) %>%
+        label_vars(., codebook) %>%
+        recode_takeup()
+    }
+  ),
+
+  tar_target(
+    silc_2005, {
+      year <- "2005"
+      r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
+      p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
+        select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
+      read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
+        add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
+        select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
+        merge_personal_df(., p_df) %>%
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
+    }
+  ),
+
+  tar_target(
+    r_rooms_2005, {
+      calculate_required_rooms(silc_2005)
+    }
+  ),
+
+  tar_target(
+    r_silc_2005, {
+      recode_vars(silc_2005, r_rooms_2005) %>%
+        label_vars(., codebook) %>%
+        recode_takeup()
+    }
+  ),
+
+  tar_target(
+    silc_2006, {
+      year <- "2006"
+      r_df <- load_r_file(glue("data/silc/{year}/SILC {year}_R.sav"))
+      p_df <- read_sav(glue("data/silc/{year}/SILC {year}_P.sav")) %>%
+        select_and_rename_personal()
+      cu <- calculate_consumption_units(r_df)
+
+      read_sav(glue("data/silc/{year}/SILC {year}_H.sav")) %>%
+        add_weights(., glue("data/silc/{year}/SILC {year}_D.sav")) %>%
+        select_and_rename_vars(., rename_lookup) %>%
+        left_join(., cu, by = c("country", "hh_id")) %>%
+        add_income_quantiles() %>%
+        merge_personal_df(., p_df) %>%
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
+    }
+  ),
+
+  tar_target(
+    r_rooms_2006, {
+      calculate_required_rooms(silc_2006)
+    }
+  ),
+
+  tar_target(
+    r_silc_2006, {
+      recode_vars(silc_2006, r_rooms_2006) %>%
+        label_vars(., codebook) %>%
+        recode_takeup()
+    }
+  ),
+
   tar_target(
     silc_2007, {
       year <- "2007"
@@ -109,7 +246,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -141,7 +281,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -173,7 +316,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -205,7 +351,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -237,7 +386,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -268,7 +420,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -299,7 +454,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -312,8 +470,9 @@ list(
   tar_target(
     r_silc_2013, {
       recode_vars(silc_2013, r_rooms_2013) %>%
-      label_vars(., codebook) %>%
-      recode_takeup()
+        label_vars(., codebook) %>%
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -330,7 +489,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -344,7 +506,8 @@ list(
     r_silc_2014, {
       recode_vars(silc_2014, r_rooms_2014) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -361,7 +524,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -375,7 +541,8 @@ list(
     r_silc_2015, {
       recode_vars(silc_2015, r_rooms_2015) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -392,7 +559,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -406,7 +576,8 @@ list(
     r_silc_2016, {
       recode_vars(silc_2016, r_rooms_2016) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -423,7 +594,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -437,7 +611,8 @@ list(
     r_silc_2017, {
       recode_vars(silc_2017, r_rooms_2017) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -454,7 +629,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -468,7 +646,8 @@ list(
     r_silc_2018, {
       recode_vars(silc_2018, r_rooms_2018) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -485,7 +664,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -499,7 +681,8 @@ list(
     r_silc_2019, {
       recode_vars(silc_2019, r_rooms_2019) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -516,7 +699,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -530,7 +716,8 @@ list(
     r_silc_2020, {
       recode_vars(silc_2020, r_rooms_2020) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -547,7 +734,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -561,7 +751,8 @@ list(
     r_silc_2021, {
       recode_vars(silc_2021, r_rooms_2021) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -578,7 +769,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -592,7 +786,8 @@ list(
     r_silc_2022, {
       recode_vars(silc_2022, r_rooms_2022) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -609,7 +804,10 @@ list(
         left_join(., cu, by = c("country", "hh_id")) %>%
         add_income_quantiles() %>%
         merge_personal_df(., p_df) %>%
-        merge_register_df(., r_df)
+        merge_register_df(., r_df) %>%
+        group_by(hh_id, country, year) %>%
+        fill(any_of(hh_cols)) %>%
+        ungroup()
     }
   ),
 
@@ -621,7 +819,8 @@ list(
     r_silc_2023, {
       recode_vars(silc_2023, r_rooms_2023) %>%
         label_vars(., codebook) %>%
-        recode_takeup()
+        recode_takeup() %>%
+        calculate_sum_deprivation_items()
     }
   ),
 
@@ -650,32 +849,43 @@ list(
   ),
 
   ## Final data -------------------------------------------
-  tar_target(
-    silc_merged, {
-      bind_rows(
-        r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
-      )
-    }
-  ),
+  # tar_target(
+  #   silc_merged, {
+  #     bind_rows(
+  #       r_silc_2011,
+  #       r_silc_2012,
+  #       r_silc_2013,
+  #       r_silc_2014,
+  #       r_silc_2015,
+  #       r_silc_2016,
+  #       r_silc_2017,
+  #       r_silc_2018,
+  #       r_silc_2019,
+  #       r_silc_2020,
+  #       r_silc_2021,
+  #       r_silc_2022,
+  #       r_silc_2023
+  #     )
+  #   }
+  # ),
 
   tar_target(
     silc_merged_households, {
-      silc_merged %>%
-        # mutate(person_no = person_id - hh_id * 100)
-        group_by(hh_id, country, year) %>%
-        slice(1)
+      bind_rows(
+        hh_r_silc_2011,
+        hh_r_silc_2012,
+        hh_r_silc_2013,
+        hh_r_silc_2014,
+        hh_r_silc_2015,
+        hh_r_silc_2016,
+        hh_r_silc_2017,
+        hh_r_silc_2018,
+        hh_r_silc_2019,
+        hh_r_silc_2020,
+        hh_r_silc_2021,
+        hh_r_silc_2022,
+        hh_r_silc_2023
+      )
     }
   ),
 
@@ -684,7 +894,8 @@ list(
     rules, {
       validator(
         `Unique IDs` = is_unique(hh_id, person_id, country),
-        `Weight is not missing` = !is.na(hh_cross_weight),
+        `HH cross weight is not missing` = !is.na(hh_cross_weight),
+        `Indi cross weight is not missing` = !is.na(indi_cross_weight),
         `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
         `Housing costs above 0` = total_housing_cost > 0,
         # share on housing with benefits is lower than share on housing without benefits
@@ -786,24 +997,266 @@ list(
 
   # Summary -----------------------------------------------
   tar_target(
+    r_silc_2011_precarity,
+    r_silc_2011 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2012_precarity,
+    r_silc_2012 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2013_precarity,
+    r_silc_2013 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2014_precarity,
+    r_silc_2014 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2015_precarity,
+    r_silc_2015 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2016_precarity,
+    r_silc_2016 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2017_precarity,
+    r_silc_2017 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2018_precarity,
+    r_silc_2018 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2019_precarity,
+    r_silc_2019 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2020_precarity,
+    r_silc_2020 %>% summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2021_precarity,
+    r_silc_2021 %>%
+      mutate(
+        bath_shower = NA,
+        toilet = NA,
+        leaks_damp = NA,
+        probs_noise = NA,
+        probs_crime = NA,
+        probs_pollution = NA
+      ) %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2022_precarity,
+    r_silc_2022 %>%
+      mutate(
+        bath_shower = NA,
+        toilet = NA,
+        leaks_damp = NA,
+        probs_noise = NA,
+        probs_crime = NA,
+        probs_pollution = NA
+      ) %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    r_silc_2023_precarity,
+    r_silc_2023 %>% summarise_precarity()
+  ),
+
+  tar_target(
     all_silc, {
       bind_rows(
-        r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
-      ) %>%
-        summarise_precarity()
+        r_silc_2011_precarity,
+        r_silc_2012_precarity,
+        r_silc_2013_precarity,
+        r_silc_2014_precarity,
+        r_silc_2015_precarity,
+        r_silc_2016_precarity,
+        r_silc_2017_precarity,
+        r_silc_2018_precarity,
+        r_silc_2019_precarity,
+        r_silc_2020_precarity,
+        r_silc_2021_precarity,
+        r_silc_2022_precarity,
+        r_silc_2023_precarity
+      )
     }
+  ),
+
+  tar_target(
+    hh_r_silc_2004,
+    r_silc_2004 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2005,
+    r_silc_2005 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2006,
+    r_silc_2006 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2007,
+    r_silc_2007 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2008,
+    r_silc_2008 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2009,
+    r_silc_2009 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2010,
+    r_silc_2010 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2011,
+    r_silc_2011 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2012,
+    r_silc_2012 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2013,
+    r_silc_2013 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2014,
+    r_silc_2014 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2015,
+    r_silc_2015 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2016,
+    r_silc_2016 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2017,
+    r_silc_2017 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2018,
+    r_silc_2018 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2019,
+    r_silc_2019 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2020,
+    r_silc_2020 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2021,
+    r_silc_2021 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2022,
+    r_silc_2022 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
+  ),
+
+  tar_target(
+    hh_r_silc_2023,
+    r_silc_2023 %>%
+      group_by(hh_id, country, year) %>%
+      slice(1) %>%
+      ungroup()
   ),
 
   tar_target(
@@ -814,24 +1267,182 @@ list(
         # r_silc_2009,
         # r_silc_2010,
         # r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
-      ) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
-        summarise_precarity()
+        hh_r_silc_2012,
+        hh_r_silc_2013,
+        hh_r_silc_2014,
+        hh_r_silc_2015,
+        hh_r_silc_2016,
+        hh_r_silc_2017,
+        hh_r_silc_2018,
+        hh_r_silc_2019,
+        hh_r_silc_2020,
+        hh_r_silc_2021,
+        hh_r_silc_2022,
+        hh_r_silc_2023
+      )
   }),
+
+  tar_target(
+    precarity_2004,
+    hh_r_silc_2004 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2005,
+    hh_r_silc_2005 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2006,
+    hh_r_silc_2006 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2007,
+    hh_r_silc_2007 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2008,
+    hh_r_silc_2008 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2009,
+    hh_r_silc_2009 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2010,
+    hh_r_silc_2010 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2011,
+    hh_r_silc_2011 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2012,
+    hh_r_silc_2012 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2013,
+    hh_r_silc_2013 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2014,
+    hh_r_silc_2014 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2015,
+    hh_r_silc_2015 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2016,
+    hh_r_silc_2016 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2017,
+    hh_r_silc_2017 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2018,
+    hh_r_silc_2018 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2019,
+    hh_r_silc_2019 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2020,
+    hh_r_silc_2020 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2021,
+    hh_r_silc_2021 %>%
+      mutate(
+        bath_shower = NA,
+        toilet = NA,
+        leaks_damp = NA,
+        probs_noise = NA,
+        probs_pollution = NA,
+        probs_crime = NA) %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2022,
+    hh_r_silc_2022 %>%
+      mutate(
+        bath_shower = NA,
+        toilet = NA,
+        leaks_damp = NA,
+        probs_noise = NA,
+        probs_pollution = NA,
+        probs_crime = NA) %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    precarity_2023,
+    hh_r_silc_2023 %>%
+      summarise_precarity()
+  ),
+
+  tar_target(
+    all_silc_households_precarity,
+    # all_silc_households %>%
+    #   summarise_precarity()
+    bind_rows(
+      precarity_2004, 
+      precarity_2005, 
+      precarity_2006, 
+      precarity_2007,
+      precarity_2008,
+      precarity_2009,
+      precarity_2010,
+      precarity_2011,
+      precarity_2012,
+      precarity_2013,
+      precarity_2014,
+      precarity_2015,
+      precarity_2016,
+      precarity_2017,
+      precarity_2018,
+      precarity_2019,
+      precarity_2020,
+      precarity_2021,
+      precarity_2022,
+      precarity_2023
+    )
+  ),
 
   tar_target(
     all_silc_households_tenants, {
@@ -841,23 +1452,20 @@ list(
         # r_silc_2009,
         # r_silc_2010,
         # r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
+        hh_r_silc_2012,
+        hh_r_silc_2013,
+        hh_r_silc_2014,
+        hh_r_silc_2015,
+        hh_r_silc_2016,
+        hh_r_silc_2017,
+        hh_r_silc_2018,
+        hh_r_silc_2019,
+        hh_r_silc_2020,
+        hh_r_silc_2021,
+        hh_r_silc_2022,
+        hh_r_silc_2023
       ) %>%
         filter(grepl("Tenant", tenure_status)) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
         summarise_precarity()
     }),
 
@@ -869,30 +1477,27 @@ list(
         # r_silc_2009,
         # r_silc_2010,
         # r_silc_2011,
-        r_silc_2012,
-        r_silc_2013,
-        r_silc_2014,
-        r_silc_2015,
-        r_silc_2016,
-        r_silc_2017,
-        r_silc_2018,
-        r_silc_2019,
-        r_silc_2020,
-        r_silc_2021,
-        r_silc_2022,
-        r_silc_2023
+        hh_r_silc_2012,
+        hh_r_silc_2013,
+        hh_r_silc_2014,
+        hh_r_silc_2015,
+        hh_r_silc_2016,
+        hh_r_silc_2017,
+        hh_r_silc_2018,
+        hh_r_silc_2019,
+        hh_r_silc_2020,
+        hh_r_silc_2021,
+        hh_r_silc_2022,
+        hh_r_silc_2023
       ) %>%
         filter(grepl("Owner", tenure_status)) %>%
-        group_by(hh_id, country, year) %>%
-        slice(1) %>%
-        ungroup %>%
         summarise_precarity()
     }),
 
   # Tables ------------------------------------------------
   tar_target(
     precarity_export, {
-      all_silc_households %>%
+      all_silc_households_precarity %>%
         select(
           `Country` = country,
           `Year` = year,
@@ -951,7 +1556,7 @@ list(
   ### Affordability --------------------------------
   tar_target(
     chart_affordability,
-    ggplot(all_silc_households, aes(x = year, y = mean_dim_affordability)) +
+    ggplot(all_silc_households_precarity, aes(x = year, y = mean_dim_affordability)) +
       geom_line() +
       geom_point(size = 0.7) +
       theme_minimal() +
@@ -969,10 +1574,33 @@ list(
            width = 10, height = 9, bg = "white")
   ),
 
+  tar_target(
+    chart_affordability_selected_countries,
+      all_silc_households_precarity %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+        ggplot(., aes(x = year, y = mean_dim_affordability)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow= 2) +
+        labs(title = "Housing affordability",
+             subtitle = "Share of households paying more than 40% of its income on housing costs",
+             x = "", y = "") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                           limits = c(0, NA))
+  ),
+
+  tar_target(
+    chart_affordability_selected_file,
+    ggsave("figs/fig_dim_affordability.png", chart_affordability_selected_countries,
+           width = 8, height = 6, bg = "white")
+  ),
+
+
   ### Insecurity --------------------------------
   tar_target(
     chart_insecurity,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(year >= 2008) %>%
       ggplot(., aes(x = year, y = mean_dim_insecurity)) +
       geom_line() +
@@ -993,8 +1621,32 @@ list(
   ),
 
   tar_target(
+    chart_insecurity_selected_countries, {
+      all_silc_households_precarity %>%
+        filter(year >= 2008) %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+        ggplot(., aes(x = year, y = mean_dim_insecurity)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow= 2) +
+        labs(title = "Housing insecurity",
+             subtitle = "Share of households with arrears on rent, mortgage or utilities",
+             x = "", y = "") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                           limits = c(0, NA))
+    }
+  ),
+
+  tar_target(
+    chart_insecurity_selected_countries_file,
+    ggsave("figs/fig_dim_insecurity.png", chart_insecurity_selected_countries,
+           width = 8, height = 6, bg = "white")
+  ),
+
+  tar_target(
     chart_insecurity_arrears_rent,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(year >= 2008) %>%
       ggplot(., aes(x = year, y = mean_arrears_mortgage_rent)) +
       geom_line() +
@@ -1017,7 +1669,7 @@ list(
 
   tar_target(
     chart_insecurity_arrears_utility,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(year >= 2008) %>%
       ggplot(., aes(x = year, y = mean_arrears_utility)) +
       geom_line() +
@@ -1041,14 +1693,14 @@ list(
   ### Quality --------------------------------
   tar_target(
     chart_quality,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
     ggplot(., aes(x = year, y = mean_dim_quality)) +
       geom_line() +
       geom_point(size = 0.7) +
       theme_minimal() +
       facet_geo(~country, grid = silc_countries_grid, label = "name") +
       labs(title = "Housing quality",
-           subtitle = "Share of households with poor housing quality (overcrowding or unable to keep warm)",
+           subtitle = "Share of households with poor housing quality\n(overcrowding or unable to keep warm)",
            x = "", y = "") +
       scale_y_continuous(labels = scales::label_percent(scale = 1)) +
       theme(legend.position = "none")
@@ -1062,8 +1714,31 @@ list(
   ),
 
   tar_target(
+    chart_quality_selected_countries,
+    all_silc_households_precarity %>%
+      filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+      ggplot(., aes(x = year, y = mean_dim_quality)) +
+      geom_line() +
+      geom_point(size = 0.7) +
+      theme_minimal(base_size = 14) +
+      facet_wrap(~country, nrow = 2) +
+      labs(title = "Housing quality",
+           subtitle = "Share of households with poor housing quality\n(overcrowding or unable to keep warm)",
+           x = "", y = "") +
+      scale_y_continuous(labels = scales::label_percent(scale = 1),
+                         limits = c(0, NA))
+  ),
+
+  tar_target(
+    chart_quality_selected_countries_file,
+    ggsave("figs/fig_dim_quality.png",
+           chart_quality_selected_countries,
+           width = 8, height = 6, bg = "white")
+  ),
+
+  tar_target(
     chart_quality_overcrowding,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       ggplot(., aes(x = year, y = mean_overcrowded_eu)) +
       geom_line() +
       geom_point(size = 0.7) +
@@ -1085,7 +1760,7 @@ list(
 
   tar_target(
     chart_quality_warm,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       ggplot(., aes(x = year, y = mean_ability_to_keep_warm)) +
       geom_line() +
       geom_point(size = 0.7) +
@@ -1108,7 +1783,7 @@ list(
   ### Locality --------------------------------
   tar_target(
     chart_locality,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(!is.na(mean_dim_locality)) %>%
       ggplot(., aes(x = year, y = mean_dim_locality)) +
       geom_line() +
@@ -1131,7 +1806,7 @@ list(
 
   tar_target(
     chart_locality_crime,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(!is.na(mean_probs_crime)) %>%
       ggplot(., aes(x = year, y = mean_probs_crime)) +
       geom_line() +
@@ -1154,7 +1829,7 @@ list(
 
   tar_target(
     chart_locality_noise,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(!is.na(mean_probs_noise)) %>%
       ggplot(., aes(x = year, y = mean_probs_noise)) +
       geom_line() +
@@ -1177,7 +1852,7 @@ list(
 
   tar_target(
     chart_locality_pollution,
-    all_silc_households %>%
+    all_silc_households_precarity %>%
       filter(!is.na(mean_probs_pollution)) %>%
       ggplot(., aes(x = year, y = mean_probs_pollution)) +
       geom_line() +
@@ -1201,7 +1876,7 @@ list(
   ## Dimensions -------------------------------------------
   tar_target(
     chart_dimensions, {
-      all_silc_households %>%
+      all_silc_households_precarity %>%
         pivot_longer(., cols = matches("dim_[0-9]"),
                      names_to = "dim_precarity",
                      values_to = "pct") %>%
@@ -1225,8 +1900,36 @@ list(
   ),
 
   tar_target(
+    chart_dimensions_selected, {
+      all_silc_households_precarity %>%
+        filter(country %in% c("UK", "FI", "DE", "NL",
+                              "RO", "IT", "BE", "CZ",
+                              "EE")) %>%
+        pivot_longer(., cols = matches("dim3_[0-9]"),
+                     names_to = "dim_precarity",
+                     values_to = "pct") %>%
+        mutate(dim_precarity = gsub("dim3_", "", dim_precarity)) %>%
+        ggplot(., aes(x = year, y = pct, fill = dim_precarity)) +
+        geom_bar(stat = "identity") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1)) +
+        facet_wrap(vars(country)) +
+        theme_minimal() +
+        scale_fill_viridis_d() +
+        labs(x = "Year", y = "% of households",
+             fill = "Housing precarity dimensions") +
+        theme(legend.position = "top")
+    }
+  ),
+
+  tar_target(
+    chart_dimensions_file_selected,
+    ggsave("figs/precarity_dimensions_selected.png", chart_dimensions_selected,
+           bg = "white", width = 10, height = 7)
+  ),
+
+  tar_target(
     chart_dimensions2, {
-      all_silc_households %>%
+      all_silc_households_precarity %>%
         pivot_longer(., cols = matches("dim3_[0-9]"),
                      names_to = "dim_precarity",
                      values_to = "pct") %>%
@@ -1300,7 +2003,7 @@ list(
   # UK, Finland, Germany, Netherlands / Romania, Italy, Belgium, Czechia, and Estonia
   tar_target(
     chart_dimensions_core, {
-        all_silc_households %>%
+        all_silc_households_precarity %>%
           mutate(country = as.character(country)) %>%
           filter(country %in% c("UK", "FI", "DE", "NL",
                                 "RO", "IT", "BE", "CZ",
@@ -1323,7 +2026,7 @@ list(
 
   tar_target(
     chart_dimensions_core_2023, {
-      dimensions_data <- all_silc_households %>%
+      dimensions_data <- all_silc_households_precarity %>%
         mutate(country = as.character(country)) %>%
         filter(country %in% c("UK", "FI", "DE", "NL",
                               "RO", "IT", "BE", "CZ",
@@ -1376,7 +2079,7 @@ list(
 
   tar_target(
     core_countries, {
-      all_silc_households %>%
+      all_silc_households_precarity %>%
         mutate(country = as.character(country)) %>%
         filter(country %in% c("UK", "FI", "DE", "NL",
                               "RO", "IT", "BE", "CZ",
@@ -1808,8 +2511,15 @@ list(
   }),
 
   tar_target(r_silc_2023_panel, {
-    thc <- silc_merged %>%
-      filter(year >= 2018) %>%
+
+    thc <- bind_rows(
+      r_silc_2018,
+      r_silc_2019,
+      r_silc_2020,
+      r_silc_2021,
+      r_silc_2022,
+      r_silc_2023
+    ) %>%
       select(year, country, hh_id, total_housing_cost) %>%
       as_factor()
     silc_2023_panel %>%
@@ -1822,7 +2532,7 @@ list(
   tar_target(
     rules_long, {
       validator(
-        `Unique IDs` = is_unique(hh_id, person_id, country),
+        `Unique IDs` = is_unique(hh_id, year, person_id, country),
         `Weight is not missing` = !is.na(hh_long_weight),
         `Share on housing within (0, 100)` = income_share_on_housing >= 0 & income_share_on_housing <= 100,
         `Housing costs above 0` = total_housing_cost > 0,
@@ -1840,15 +2550,45 @@ list(
     confront(silc_2023_panel, rules_long)
   ),
 
+  # CZ SILC -------------------------------
+  tar_target(
+    cz_silc, 
+    bind_rows(
+      r_silc_2011 |> filter(country == "CZ"), 
+      r_silc_2012 |> filter(country == "CZ"), 
+      r_silc_2013 |> filter(country == "CZ"), 
+      r_silc_2014 |> filter(country == "CZ"), 
+      r_silc_2015 |> filter(country == "CZ"), 
+      r_silc_2016 |> filter(country == "CZ"), 
+      r_silc_2017 |> filter(country == "CZ"), 
+      r_silc_2018 |> filter(country == "CZ"), 
+      r_silc_2019 |> filter(country == "CZ"), 
+      r_silc_2020 |> filter(country == "CZ"), 
+      r_silc_2021 |> filter(country == "CZ"), 
+      r_silc_2022 |> filter(country == "CZ"), 
+      r_silc_2023 |> filter(country == "CZ")
+    )
+  ),
+
   # Analyses ------------------------------
+  # tar_render(
+  #   hb_cross,
+  #   "housing_benefits.Rmd"
+  # ),
+
+  # tar_render(
+  #   hb_panel,
+  #   "panel_housing_benefits.Rmd"
+  # ),
+
   tar_render(
-    hb_cross,
-    "housing_benefits.Rmd"
+    validation_rmd,
+    "validations.Rmd"
   ),
 
   tar_render(
-    hb_panel,
-    "panel_housing_benefits.Rmd"
+    arop_rmd,
+    "arop.Rmd"
   ),
 
   NULL

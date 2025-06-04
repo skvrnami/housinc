@@ -1,0 +1,207 @@
+---
+title: "Matching: Other precarity dimensions"
+author: "Michael Škvrňák"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(targets)
+library(MatchIt)
+library(haven)
+library(modelsummary)
+
+tar_load(r_silc_2023)
+```
+
+```{r}
+hh_r_silc_2023 <- r_silc_2023 %>% 
+  group_by(country, hh_id) %>% 
+  mutate(
+    n_employed = sum(econ_status == "Employed", na.rm = TRUE),
+    n_retired = sum(econ_status == "Retired", na.rm = TRUE),
+    n_persons = n()
+  ) %>% 
+  slice(1) %>% 
+  ungroup %>% 
+  mutate(across(c(country, urbanisation, region), as_factor)) %>% 
+  mutate(
+    r_urbanisation = if_else(is.na(urbanisation), "Not available", urbanisation) %>% 
+      factor(., levels = c(
+        "Cities (DB010>=2021), Densely populated area (EE,LV:1,2=1) (DB010<2021)",
+        "Towns and suburbs (MT:2,3=2) (DB010>=2021), Intermediate area (MT:2,3=2) (DB010<2021)",
+        "Rural areas (DB010>=2021), Thinly populated area (DB010<2021)",
+        "Not available"
+      ), 
+        labels = c("Cities", "Towns and suburbs", "Rural areas",  "N/A")
+      ), 
+    total_disposable_income_before_social_transfers_eqi = 
+      total_disposable_income_before_social_transfers / consumption_units, 
+    income_without_housing_allowance = income_disposable - allowance_housing, 
+    income_without_housing_allowance_eqi = income_without_housing_allowance / consumption_units
+  ) %>% 
+  group_by(country) %>% 
+  mutate(disposable_income_before_quantiles = as.numeric(cut(total_disposable_income_before_social_transfers, breaks = 50)), 
+         disposable_income_without_housing_allowance_before_quantiles = as.numeric(cut(income_without_housing_allowance, breaks = 50))) %>% 
+  ungroup()
+```
+
+```{r}
+calculate_dimensions <- function(df){
+  df %>% 
+    mutate(
+      dim_affordability = housing_overburden,
+      dim_insecurity = arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more") |
+          arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+      dim_quality = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+          ability_to_keep_warm == "No"),
+      ),
+      dim_quality2 = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+                  ability_to_keep_warm == "No" |
+                  bath_shower %in% c("No", "Yes, shared") |
+                  toilet %in% c("No", "Yes, shared") |
+                  leaks_damp == "Yes"),
+      ),
+      dim_locality =
+        probs_noise == "Yes" |
+          probs_crime == "Yes" |
+          probs_noise == "Yes",
+    )
+}
+```
+
+
+## Czechia
+```{r}
+m_out <- matchit(takeup_allowance_housing ~ n_children + n_employed + 
+          n_retired + n_persons + total_disposable_income_before_social_transfers_eqi + 
+            income_without_housing_allowance_eqi + 
+          # country + 
+            region + r_urbanisation + tenure_status, 
+        # exact = ~ country + tenure_status, 
+        method = "nearest",
+        distance = "mahalanobis",
+        replace = TRUE,
+        exact = ~ n_children + n_employed + n_persons + n_retired + 
+          tenure_status + disposable_income_before_quantiles + 
+          r_urbanisation + region,
+        data = hh_r_silc_2023 %>% 
+          filter(country == "Czech Republic") %>% 
+          filter(!is.na(takeup_allowance_housing)) %>% 
+          filter(!is.na(tenure_status)))
+
+summary(m_out)
+plot(summary(m_out))
+
+```
+```{r}
+m_data <- match_data(m_out) %>% 
+  calculate_dimensions()
+  
+m_data %>% 
+  group_by(takeup_allowance_housing) %>% 
+  summarise(across(c(starts_with("dim")), mean)) %>% 
+  knitr::kable()
+```
+```{r}
+
+glm(dim_insecurity ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_quality ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_quality2 ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_locality ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(overcrowded_eurostat ~ takeup_allowance_housing + 
+    total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+
+
+```
+
+
+## Finland
+```{r}
+fi_m_out <- matchit(takeup_allowance_housing ~ n_children + n_employed + 
+          n_retired + n_persons + total_disposable_income_before_social_transfers_eqi +
+            income_without_housing_allowance_eqi +
+          # country + 
+            region + r_urbanisation + tenure_status, 
+        # exact = ~ country + tenure_status, 
+        method = "nearest",
+        distance = "mahalanobis",
+        replace = TRUE,
+        exact = ~ n_children + n_employed + n_persons + n_retired + 
+          tenure_status + disposable_income_before_quantiles + 
+          r_urbanisation + region,
+        data = hh_r_silc_2023 %>% 
+          filter(country == "Suomi") %>% 
+          filter(!is.na(takeup_allowance_housing)) %>% 
+          filter(!is.na(tenure_status)))
+
+summary(fi_m_out)
+plot(summary(fi_m_out))
+
+```
+```{r}
+fi_m_data <- match_data(fi_m_out) %>% 
+  calculate_dimensions()
+  
+fi_m_data %>% 
+  group_by(takeup_allowance_housing) %>% 
+  summarise(across(c(starts_with("dim")), ~mean(.x, na.rm = TRUE))) %>% 
+  knitr::kable()
+```
+```{r}
+
+glm(dim_insecurity ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = fi_m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_quality ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = fi_m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_quality2 ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = fi_m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(dim_locality ~ takeup_allowance_housing + total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = fi_m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+glm(overcrowded_eurostat ~ takeup_allowance_housing + 
+    total_disposable_income_before_social_transfers_eqi, 
+    family = binomial("logit"),
+    data = fi_m_data) %>% 
+  modelsummary(., stars = TRUE)
+
+```
+
+

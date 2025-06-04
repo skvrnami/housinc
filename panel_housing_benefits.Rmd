@@ -73,6 +73,44 @@ ggplot(rent_increase, aes(x = year, y = median_rent_increase)) +
   theme(legend.position = "top")
 ```
 
+## Takeup change
+```{r}
+hh_takeup_change <- silc_2023_panel_hh %>% 
+  mutate(housing_allowance_takeup = allowance_housing > 0) %>% 
+  select(year, country, hh_id, allowance_housing, housing_allowance_takeup) %>% 
+  group_by(country, hh_id) %>% 
+  mutate(
+    lag_takeup = lag(housing_allowance_takeup), 
+    lag_year = lag(year)
+  ) %>% 
+  filter((lag_year + 1) == year) %>% 
+  mutate(takeup_change = case_when(
+    housing_allowance_takeup & lag_takeup ~ "Stable recipient", 
+    lag_takeup & !housing_allowance_takeup ~ "Stopped receiving benefits",
+    !lag_takeup & housing_allowance_takeup ~ "Began receiving benefits", 
+    !lag_takeup & !housing_allowance_takeup ~ "Never received benefits"
+  ))
+```
+```{r}
+hh_takeup_change %>% 
+  group_by(country, year, takeup_change) %>% 
+  summarise(n = n(), .groups = "drop") %>% 
+  group_by(country, year) %>% 
+  mutate(pct = n / sum(n)) %>% 
+  ungroup %>% 
+  ggplot(., aes(x = year, y = pct, fill = takeup_change)) + 
+  geom_bar(stat = "identity") + 
+  facet_wrap(~country) + 
+  theme_minimal() + 
+  scale_y_continuous(labels = scales::label_percent()) + 
+  labs(x = "Year", # y = "Share of households", 
+       colour = "") + 
+  theme(legend.position = "top")
+```
+
+
+
+## SILC merged
 ```{r}
 tar_load(silc_merged_households)
 

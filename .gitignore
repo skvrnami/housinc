@@ -8,3 +8,6 @@ data/silc_long/
 
 _targets/
 tabs/*.xlsx
+
+arop_files/*
+housing_benefits_files/*

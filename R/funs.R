@@ -1,10 +1,10 @@
 add_weights <- function(df, path){
   if(grepl("sav$", path)){
     weights <- read_sav(path) %>%
-      select(DB020, DB030, hh_cross_weight = DB090)
+      select(DB020, DB030, region = DB040, urbanisation = DB100, hh_cross_weight = DB090)
   }else{
     weights <- read_dta(path) %>%
-      select(DB020, DB030, hh_cross_weight = DB090)
+      select(DB020, DB030, region = DB040, urbanisation = DB100, hh_cross_weight = DB090)
   }
 
   df %>%
@@ -14,7 +14,7 @@ add_weights <- function(df, path){
 
 add_long_weights <- function(df, path){
   weights <- readRDS(path) %>%
-    select(DB010, DB020, DB030, hh_long_weight = DB095)
+    select(DB010, DB020, DB030, region = DB040, urbanisation = DB100, hh_long_weight = DB095)
 
   df %>%
     left_join(., weights,
@@ -42,23 +42,38 @@ load_r_file <- function(path){
       rename(age = RB082)
   }
 
+  if("RX040" %in% colnames(tmp)){
+    tmp <- tmp %>%
+      rename(
+        work_intensity = RX040,
+        low_work_intensity = RX050,
+        severe_material_social_deprivation = RX060,
+        at_risk_of_poverty_or_social_exclusion = RX070
+      )
+  }
+
   tmp %>%
     mutate(
       person_id = RB030,
-      hh_id = floor(RB030 / 100),
+      hh_id = RX030,
       has_partner = as.numeric(RB240_F == 1),
       partner_id = RB240,
       father_id = RB220,
       mother_id = RB230,
-      partner_in_same_household = floor(partner_id / 100) == hh_id,
-      couple = as.numeric(has_partner & partner_in_same_household)
+      indi_cross_weight = RB050,
+      # partner_in_same_household = floor(partner_id / 100) == hh_id,
+      couple = as.numeric(has_partner) # & partner_in_same_household)
     ) %>%
     select(person_id, hh_id, year = RB010, country = RB020,
            couple, birth_year = RB080, partner_id,
-           has_partner, partner_in_same_household,
+           has_partner, # partner_in_same_household,
            father_id, mother_id,
-           age,
-           sex = RB090) %>%
+           age, indi_cross_weight,
+           sex = RB090,
+           any_of(c("work_intensity",
+                    "low_work_intensity",
+                    "severe_material_social_deprivation",
+                    "at_risk_of_poverty_or_social_exclusion"))) %>%
     mutate(
       age = as.numeric(age),
       birth_year = as.numeric(birth_year)
@@ -95,13 +110,14 @@ load_r_file_long <- function(path){
       partner_id = RB240,
       father_id = RB220,
       mother_id = RB230,
-      partner_in_same_household = floor(partner_id / 100) == hh_id,
-      couple = as.numeric(has_partner & partner_in_same_household)
+      indi_weight_long_base = RB060,
+      # partner_in_same_household = floor(partner_id / 100) == hh_id,
+      couple = as.numeric(has_partner) # & partner_in_same_household)
     ) %>%
     select(person_id, hh_id, year = RB010, country = RB020,
            couple, birth_year = RB080, partner_id,
-           has_partner, partner_in_same_household,
-           father_id, mother_id,
+           has_partner, # partner_in_same_household,
+           father_id, mother_id, indi_weight_long_base,
            age,
            sex = RB090) %>%
     mutate(
@@ -120,6 +136,27 @@ merge_register_df <- function(df1, r_df){
 }
 
 select_and_rename_vars <- function(df, rename_lookup){
+  if("HS011" %in% colnames(df)){
+    df <- df %>%
+    mutate(
+      HS011 = if_else(HS011_F == -2, 3, as.numeric(HS011))
+    )
+  }
+
+  if("HS021" %in% colnames(df)){
+    df <- df %>%
+      mutate(
+        HS021 = if_else(HS021_F == -2, 3, as.numeric(HS021))
+      )
+  }
+
+  if("HS031" %in% colnames(df)){
+    df <- df %>%
+      mutate(
+        HS031 = if_else(HS031_F == -2, 3, as.numeric(HS031))
+      )
+  }
+
   out <- df %>%
     rename(
       any_of(rename_lookup)
@@ -177,16 +214,44 @@ select_and_rename_personal <- function(df){
       year = PB010,
       country = PB020,
       person_id = PB030,
-      # birth_year = PB140,
-      # sex = PB150,
-      # RB240_F
-    ) %>%
-    mutate(
-      hh_id = as.character(person_id)
-    ) %>%
-    mutate(
-      hh_id = as.numeric(substr(hh_id, 1, nchar(hh_id) - 2))
-    )
+      hh_id = PX030,
+      person_gross_cash_income = PY010G,
+      person_net_cash_income = PY010N,
+      person_gross_noncash_income = PY020G,
+      person_net_noncash_income = PY020N,
+      person_gross_selfemployed_income = PY050G,
+      person_net_selfemployed_income = PY050N,
+      person_private_pensions = PY080G,
+      person_gross_unemployment_benefits = PY090G,
+      person_net_unemployment_benefits = PY090N,
+      person_gross_oldage_benefits = PY100G,
+      person_gross_survivor_benefits = PY110G,
+      person_gross_sickness_benefits = PY120G,
+      person_gross_disability_benefits = PY130G,
+      person_gross_education_benefits = PY140G,
+      person_net_unemployment_benefits = PY090N,
+      person_net_oldage_benefits = PY100N,
+      person_net_survivor_benefits = PY110N,
+      person_net_sickness_benefits = PY120N,
+      person_net_disability_benefits = PY130N,
+      person_net_education_benefits = PY140N
+      # occupation_main = PL051A,
+      # occupation_last = PL051B
+    ) # %>%
+    # mutate(
+    #   hh_id = as.character(person_id)
+    # ) %>%
+    # mutate(
+    #   hh_id = as.numeric(substr(hh_id, 1, nchar(hh_id) - 2))
+    # )
+
+  if("PL040A" %in% colnames(out)){
+    out <- out %>%
+      rename(
+        status_in_employment_main = PL040A,
+        status_in_employment_last = PL040B
+      )
+  }
 
   if("PC170" %in% colnames(out)){
     out <- out %>%
@@ -214,6 +279,62 @@ select_and_rename_personal <- function(df){
   if("PL031" %in% colnames(out)){
     out <- out %>%
       mutate(econ_status = recode_econ_status_2020(PL031))
+  }
+
+  if("PD080" %in% colnames(out)){
+    out <- out %>%
+      rename(
+        have_internet_connection = PD080,
+        have_two_shoes = PD030,
+        capacity_spend_money_on_yourself = PD070,
+        capacity_replace_clothes = PD020,
+        participate_leisure_activity = PD060,
+        get_together_w_friends = PD050
+      )
+  }
+  # if("PB040" %in% colnames(out)){
+  #   out <- out %>%
+  #     rename(indi_cross_weight = PB040)
+  # }
+
+  if("PB050" %in% colnames(out)){
+    out <- out %>%
+      rename(indi_long_weight_base = PB050)
+  }
+
+  if("PL145" %in% colnames(out)){
+    out <- out %>%
+      rename(full_part_time_job = PL145)
+  }
+
+  if("PL060" %in% colnames(out)){
+    out <- out %>%
+      rename(
+        hours_in_main_job = PL060
+      )
+  }
+
+  if("PL100" %in% colnames(out)){
+    out <- out %>%
+      rename(
+        hours_other_jobs = PL100
+      )
+  }
+
+  if("PL073" %in% colnames(out)){
+    out <- out %>%
+      rename(
+        months_full_time_employee = PL073,
+        months_part_time_employee = PL074,
+        months_full_time_selfemployed = PL075,
+        months_part_time_selfemployed = PL076,
+        months_unemployed = PL085,
+        months_ill = PL086,
+        months_student = PL087,
+        months_military = PL088,
+        months_domestic_tasks = PL089,
+        months_other = PL090
+      )
   }
 
   out %>%
@@ -333,6 +454,7 @@ summarise_precarity <- function(df){
       ),
       dim_quality2 = case_when(
         is.na(overcrowded_eurostat) ~ NA,
+        is.na(toilet) ~ NA,
         TRUE ~ (overcrowded_eurostat |
                   ability_to_keep_warm == "No" |
                   bath_shower %in% c("No", "Yes, shared") |
@@ -403,13 +525,13 @@ summarise_precarity <- function(df){
                                         dim_locality))) == 4,
                        w = hh_cross_weight) * 100,
 
-      dim3_0 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 0,
+      dim3_0 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality))) == 0,
                        w = hh_cross_weight) * 100,
-      dim3_1 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 1,
+      dim3_1 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality))) == 1,
                        w = hh_cross_weight) * 100,
-      dim3_2 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 2,
+      dim3_2 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality))) == 2,
                        w = hh_cross_weight) * 100,
-      dim3_3 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality2))) == 3,
+      dim3_3 = wtd.mean(rowSums(across(c(dim_affordability, dim_insecurity, dim_quality))) == 3,
                        w = hh_cross_weight) * 100,
       .groups = "drop"
     )
@@ -609,4 +731,64 @@ calculate_consumption_units_long <- function(r_df){
 
   cu %>%
     mutate(consumption_units = 1 + (n_above13 - 1) * 0.5 + n_below13 * 0.3)
+}
+
+calculate_sum_deprivation_items <- function(df){
+  df %>%
+    # mutate(
+    #   across(c(capacity_to_face_expenses,
+    #            capacity_to_afford_holiday,
+    #            arrears_mortgage_rent,
+    #            arrears_utility,
+    #            arrears_other,
+    #            capacity_to_afford_meat,
+    #            ability_to_keep_warm,
+    #            have_car,
+    #            capacity_to_replace_furniture,
+    #            have_internet_connection,
+    #            capacity_replace_clothes,
+    #            have_two_shoes,
+    #            capacity_spend_money_on_yourself,
+    #            get_together_w_friends,
+    #            participate_leisure_activity),
+    #          as_factor)
+    # ) %>%
+    mutate(
+      deprived_capacity_to_face_expenses = as.numeric(capacity_to_face_expenses != "Yes"),
+      deprived_capacity_to_afford_holiday = as.numeric(capacity_to_afford_holiday != "Yes"),
+      deprived_capacity_arrears = as.numeric(
+        arrears_mortgage_rent != "No" &
+          arrears_utility != "No" &
+          arrears_other != "No"
+      ),
+      deprived_capacity_to_afford_meat = as.numeric(capacity_to_afford_meat != "Yes"),
+      deprived_ability_to_keep_warm = as.numeric(ability_to_keep_warm != "Yes"),
+      # deprived_have_car = as.numeric(have_car != "Yes"),
+      # deprived_capacity_to_replace_furniture = as.numeric(capacity_to_replace_furniture != "Yes"),
+      # deprived_have_internet_connection = as.numeric(have_internet_connection != "Yes"),
+      # deprived_capacity_replace_clothes = as.numeric(capacity_replace_clothes != "Yes"),
+      # deprived_have_two_shoes = as.numeric(have_two_shoes != "Yes"),
+      # deprived_capacity_spend_money_on_yourself = as.numeric(capacity_spend_money_on_yourself != "Yes"),
+      # deprived_get_together_w_friends = as.numeric(get_together_w_friends != "Yes"),
+      # deprived_participate_leisure_activity = as.numeric(participate_leisure_activity != "Yes"),
+
+      deprived_have_car = as.numeric(have_car == "No - cannot afford"),
+      deprived_capacity_to_replace_furniture = as.numeric(capacity_to_replace_furniture == "No - cannot afford"),
+      deprived_have_internet_connection = as.numeric(have_internet_connection == "No - cannot afford it"),
+      deprived_capacity_replace_clothes = as.numeric(capacity_replace_clothes == "No - cannot afford it"),
+      deprived_have_two_shoes = as.numeric(have_two_shoes == "No - cannot afford it"),
+      deprived_capacity_spend_money_on_yourself = as.numeric(capacity_spend_money_on_yourself == "No - cannot afford it"),
+      deprived_get_together_w_friends = as.numeric(get_together_w_friends == "No - cannot afford it"),
+      deprived_participate_leisure_activity = as.numeric(participate_leisure_activity == "No - cannot afford it"),
+
+      sum_deprived_items = rowSums(across(starts_with("deprived"))),
+      sum_deprived_items_wo_expenses = rowSums(across(c(
+        deprived_capacity_to_afford_holiday, deprived_capacity_arrears, 
+        deprived_capacity_to_afford_meat, deprived_ability_to_keep_warm, 
+        deprived_have_car, deprived_capacity_to_replace_furniture,
+        deprived_have_internet_connection, deprived_capacity_replace_clothes, 
+        deprived_have_two_shoes, deprived_capacity_spend_money_on_yourself,
+        deprived_get_together_w_friends, deprived_participate_leisure_activity
+      )))
+    )
 }
