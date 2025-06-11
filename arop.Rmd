@@ -43,6 +43,7 @@ library(Hmisc)
 library(haven)
 library(readxl)
 library(eulerr)
+library(ggtext)
 library(targets)
 library(ggplot2)
 library(ggrepel)
@@ -612,12 +613,13 @@ save_plot(plot = last_plot(),
 #### Za kolik z AROPE může AROP, deprivace, nízká pracovní aktivita
 ##### AROPE s národní hranicí
 ```{r}
-arope_split <- hh_r_silc_2023_national_arop |> 
+national_arope_data <- hh_r_silc_2023_national_arop |> 
   mutate(type = fct_case_when(
     under_national_arop ~ "Pod národní hranicí chudoby",
     severe_material_social_deprivation == 1 ~ "Vážně materiálně či sociálně deprivovaný",
     low_work_intensity == 1 ~ "Nízká pracovní intenzita", 
-    TRUE ~ "není v AROPE"
+    TRUE ~ "není v AROPE", 
+    new_levels = c("není v AROPE", "Nízká pracovní intenzita", "Vážně materiálně či sociálně deprivovaný", "Pod národní hranicí chudoby")
   ), 
     country = fct_case_when(
       country == "Bulgaria" ~ "Bulharsko",
@@ -648,7 +650,16 @@ arope_split <- hh_r_silc_2023_national_arop |>
       country == "Austria" ~ "Rakousko",
       country == "Luxembourg" ~ "Lucembursko"
     )
-  ) |> 
+  )
+
+eu_arope_split <- national_arope_data |> 
+  group_by(type) |> 
+  summarise(n = sum(hh_cross_weight)) |> 
+  ungroup() |> 
+  mutate(pct = n / sum(n), 
+         country = "EU")
+
+arope_split <- national_arope_data |> 
   group_by(country, type) |> 
   summarise(n = sum(hh_cross_weight)) |> 
   group_by(country) |> 
@@ -665,12 +676,31 @@ arope_split |>
   ggplot(aes(x = country, y = pct, fill = type)) + 
   geom_bar(stat = "identity") + 
   theme_paq() + 
-  scale_y_continuous(labels = scales::label_percent(suffix = " %")) +
+  scale_y_continuous(labels = scales::label_percent(suffix = " %"), expand = c(0, 0)) +
   scale_fill_manual(values = paleta_kategoricka(3)) +
   coord_flip() +
   labs(x = "", y = "% domácností") + 
-  guides(fill = guide_legend(nrow = 3))
+  guides(fill = guide_legend(nrow = 3, reverse = TRUE)) + 
+  theme(panel.grid.major.y = element_blank())
 
+save_plot(last_plot(), "figs/arop/arop_composition.png")
+```
+
+```{r}
+arope_split |> 
+  bind_rows(eu_arope_split) |> 
+  filter(type != "není v AROPE") |> 
+  mutate(country = factor(country, levels = c(as.character(arope_split_countries), "EU"))) |> 
+  ggplot(aes(x = country, y = pct, fill = type)) + 
+  geom_bar(stat = "identity") + 
+  theme_paq() + 
+  scale_y_continuous(labels = scales::label_percent(suffix = " %"), expand = c(0, 0)) +
+  scale_fill_manual(values = rev(paleta_kategoricka(3))) +
+  coord_flip() +
+  labs(x = "", y = "% domácností") + 
+  guides(fill = guide_legend(nrow = 3, reverse = TRUE))
+
+save_plot(last_plot(), "figs/arop/arop_composition_w_eu.png")
 ```
 
 ```{r}
@@ -895,14 +925,82 @@ save_plot(euler_mega_chart, "figs/arop/euler_diagrams.png", width_px = 1000, hei
 
 ```
 
+```{r}
+all_countries_heatmap_data <- hh_r_silc_2023_national_arop |> 
+  mutate(
+    national_arop = fct_case_when(
+      under_national_arop ~ "Pod národní hranicí chudoby", 
+      TRUE ~ "Nad národní hranicí chudoby"
+    ),
+    deprivation = fct_case_when(
+      severe_material_social_deprivation == 1 ~ "Vážně materiálně či sociálně deprivovaný",
+      TRUE ~ "Není vážně deprivovaný"
+    ),
+    work_intensity = fct_case_when(
+      low_work_intensity == 1 ~ "Nízká pracovní intenzita",
+      low_work_intensity != 1 ~ "Dostatečná pracovní intenzita"
+    )
+  ) |> 
+  group_by(national_arop, deprivation, work_intensity) |> 
+  summarise(n = sum(hh_cross_weight)) |> ungroup() |> 
+  mutate(pct = n / sum(n))
+
+eu_euler <- 
+  c(
+  "Pod hranicí chudoby" = all_countries_heatmap_data |> ungroup() |> 
+  filter(national_arop == "Pod národní hranicí chudoby", 
+         work_intensity == "Dostatečná pracovní intenzita", 
+         deprivation == "Není vážně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Nízká pracovní\nintenzita" = all_countries_heatmap_data |> ungroup() |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+         deprivation == "Není vážně deprivovaný",
+         national_arop == "Nad národní hranicí chudoby") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Vážná materiální\nči sociální deprivace" = all_countries_heatmap_data |> ungroup() |> 
+  filter(deprivation == "Vážně materiálně či sociálně deprivovaný", 
+         work_intensity == "Nízká pracovní intenzita", 
+         national_arop == "Nad národní hranicí chudoby") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod hranicí chudoby&Nízká pracovní\nintenzita" = all_countries_heatmap_data |> ungroup() |> 
+  filter(national_arop == "Pod národní hranicí chudoby", 
+         work_intensity == "Nízká pracovní intenzita") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod hranicí chudoby&Vážná materiální\nči sociální deprivace" = all_countries_heatmap_data |> ungroup() |> 
+  filter(national_arop == "Pod národní hranicí chudoby", 
+         deprivation == "Vážně materiálně či sociálně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Nízká pracovní\nintenzita&Vážná materiální\nči sociální deprivace" = all_countries_heatmap_data |> ungroup() |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+          deprivation == "Vážně materiálně či sociálně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod hranicí chudoby&Nízká pracovní\nintenzita&Vážná materiální\nči sociální deprivace" = all_countries_heatmap_data |> ungroup() |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+          deprivation == "Vážně materiálně či sociálně deprivovaný", 
+          national_arop == "Pod národní hranicí chudoby") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct)
+)
+
+eu_fit <- euler(eu_euler, shape = "ellipse")
+
+```
+
 ##### AROPE s evropskou hranicí
 ```{r}
-arope_split2 <- hh_r_silc_2023_national_arop |> 
+arope_split2_data <- hh_r_silc_2023_national_arop |> 
   mutate(type = fct_case_when(
     under_arop ~ "Pod evropskou hranicí chudoby",
     severe_material_social_deprivation == 1 ~ "Vážně materiálně či sociálně deprivovaný",
     low_work_intensity == 1 ~ "Nízká pracovní intenzita", 
-    TRUE ~ "není v AROPE"
+    TRUE ~ "není v AROPE", 
+    new_levels = c("není v AROPE", "Nízká pracovní intenzita", "Vážně materiálně či sociálně deprivovaný", "Pod evropskou hranicí chudoby")
   ), 
     country = fct_case_when(
       country == "Bulgaria" ~ "Bulharsko",
@@ -933,11 +1031,20 @@ arope_split2 <- hh_r_silc_2023_national_arop |>
       country == "Austria" ~ "Rakousko",
       country == "Luxembourg" ~ "Lucembursko"
     )
-  ) |> 
+  ) 
+  
+arope_split2 <- arope_split2_data |> 
   group_by(country, type) |> 
   summarise(n = sum(hh_cross_weight)) |> 
   group_by(country) |> 
   mutate(pct = n / sum(n))
+
+eu_arope_split2 <- arope_split2_data |> 
+  group_by(type) |> 
+  summarise(n = sum(hh_cross_weight)) |> 
+  ungroup() |> 
+  mutate(pct = n / sum(n), 
+         country = "EU")
 
 arope_split_countries2 <- arope_split2 |> 
   filter(type == "není v AROPE") |> 
@@ -950,11 +1057,31 @@ arope_split2 |>
   ggplot(aes(x = country, y = pct, fill = type)) + 
   geom_bar(stat = "identity") + 
   theme_paq() + 
-  scale_y_continuous(labels = scales::label_percent(suffix = " %")) +
-  scale_fill_manual(values = paleta_kategoricka(3)) +
+  scale_y_continuous(labels = scales::label_percent(suffix = " %"), expand = c(0, 0)) +
+  scale_fill_manual(values = rev(paleta_kategoricka(3))) +
   coord_flip() +
   labs(x = "", y = "% domácností") + 
-  guides(fill = guide_legend(nrow = 3))
+  guides(fill = guide_legend(nrow = 3, reverse = TRUE))
+
+save_plot(last_plot(), "figs/arop/eu_arop_composition.png")
+
+```
+
+```{r}
+arope_split2 |> 
+  bind_rows(eu_arope_split2) |> 
+  filter(type != "není v AROPE") |> 
+  mutate(country = factor(country, levels = c(as.character(arope_split_countries2), "EU"))) |> 
+  ggplot(aes(x = country, y = pct, fill = type)) + 
+  geom_bar(stat = "identity") + 
+  theme_paq() + 
+  scale_y_continuous(labels = scales::label_percent(suffix = " %"), expand = c(0, 0)) +
+  scale_fill_manual(values = rev(paleta_kategoricka(3))) +
+  coord_flip() +
+  labs(x = "", y = "% domácností") + 
+  guides(fill = guide_legend(nrow = 3, reverse = TRUE))
+
+save_plot(last_plot(), "figs/arop/eu_arop_composition_w_eu.png")
 
 ```
 
@@ -1086,6 +1213,72 @@ save_plot(eu_euler_mega_chart, "figs/arop/euler_eu_diagrams.png",
           width_px = 1000, height_px = 1000)
 ```
 
+```{r}
+all_countries_eu_heatmap_data <- hh_r_silc_2023_national_arop |> 
+  mutate(
+    eu_arop = fct_case_when(
+      under_arop ~ "Pod evropskou hranicí chudoby", 
+      TRUE ~ "Nad evropskou hranicí chudoby"
+    ),
+    deprivation = fct_case_when(
+      severe_material_social_deprivation == 1 ~ "Vážně materiálně či sociálně deprivovaný",
+      TRUE ~ "Není vážně deprivovaný"
+    ),
+    work_intensity = fct_case_when(
+      low_work_intensity == 1 ~ "Nízká pracovní intenzita",
+      low_work_intensity != 1 ~ "Dostatečná pracovní intenzita"
+    )
+  ) |> 
+  group_by(eu_arop, deprivation, work_intensity) |> 
+  summarise(n = sum(hh_cross_weight)) |> ungroup() |> 
+  mutate(pct = n / sum(n))
+
+all_countries_euler_df <- c(
+  "Pod EU hranicí chudoby" = all_countries_eu_heatmap_data |> 
+  filter(eu_arop == "Pod evropskou hranicí chudoby", 
+         work_intensity == "Dostatečná pracovní intenzita", 
+         deprivation == "Není vážně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Nízká pracovní\nintenzita" = all_countries_eu_heatmap_data |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+         eu_arop == "Nad evropskou hranicí chudoby", 
+         deprivation == "Není vážně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Vážná materiální\nči sociální deprivace" = all_countries_eu_heatmap_data |> 
+  filter(deprivation == "Vážně materiálně či sociálně deprivovaný", 
+         eu_arop == "Nad evropskou hranicí chudoby", 
+         work_intensity == "Dostatečná pracovní intenzita") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod EU hranicí chudoby&Nízká pracovní\nintenzita" = all_countries_eu_heatmap_data |>
+  filter(eu_arop == "Pod evropskou hranicí chudoby", 
+         work_intensity == "Nízká pracovní intenzita") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod EU hranicí chudoby&Vážná materiální\nči sociální deprivace" = all_countries_eu_heatmap_data |> 
+  filter(eu_arop == "Pod evropskou hranicí chudoby", 
+         deprivation == "Vážně materiálně či sociálně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Nízká pracovní\nintenzita&Vážná materiální\nči sociální deprivace" = all_countries_eu_heatmap_data |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+          deprivation == "Vážně materiálně či sociálně deprivovaný") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct),
+  "Pod EU hranicí chudoby&Nízká pracovní\nintenzita&Vážná materiální\nči sociální deprivace" = all_countries_eu_heatmap_data |> 
+  filter(work_intensity == "Nízká pracovní intenzita", 
+          deprivation == "Vážně materiálně či sociálně deprivovaný", 
+          eu_arop == "Pod evropskou hranicí chudoby") |> 
+  summarise(pct = round(sum(pct) * 100, 1)) |> 
+  pull(pct)
+)
+
+fit <-euler(all_countries_euler_df, shape = "ellipse")
+plot(fit, quantities = TRUE, main = "EU", labels = TRUE)  
+```
+
 #### Bez indikátoru "nemůže si dovolit nečekané výdaje ve výši 60% mediánového příjmu"
 ```{r}
 aropes2 <- hh_r_silc_2023_national_arop %>% 
@@ -1206,9 +1399,18 @@ arop_deprivation <- hh_r_silc_2023_national_arop |>
 cor(arop_deprivation$under_national_arop, arop_deprivation$material_deprivation)
 cor(arop_deprivation$under_eu_arop, arop_deprivation$material_deprivation)
 
+r2_label <- tibble(
+  x = 10, 
+  y = 20, 
+  label = "r<sup>2</sup>=0.01"
+)
+
 chart_national_depr <- ggplot(arop_deprivation, aes(x = under_national_arop, y = material_deprivation)) + 
   geom_point() + 
   geom_text_repel(aes(label = country)) + 
+  geom_richtext(aes(x = x, y = y, label = label), 
+                data = r2_label, hjust = 0, 
+                fill = NA, label.colour = NA) + 
   geom_smooth(method = "lm", se = FALSE) + 
   scale_y_continuous(labels = scales::label_percent(scale = 1, suffix = " %")) +
   scale_x_continuous(labels = scales::label_percent(scale = 1, suffix = " %")) + 
@@ -1217,10 +1419,19 @@ chart_national_depr <- ggplot(arop_deprivation, aes(x = under_national_arop, y =
   labs(x = "% domácností pod národní hranicí chudoby", 
        y = "% domácností ve vážné materiální nebo sociální deprivaci")
 
+eu_r2_label <- tibble(
+  x = 3.4, 
+  y = 20, 
+  label = "r<sup>2</sup>=0.36"
+)
+
 chart_eu_depr <- ggplot(arop_deprivation, aes(x = under_eu_arop, y = material_deprivation)) + 
   geom_point() + 
   geom_text_repel(aes(label = country)) + 
   geom_smooth(method = "lm", se = FALSE) + 
+  geom_richtext(aes(x = x, y = y, label = label), 
+                data = eu_r2_label, hjust = 0, 
+                fill = NA, label.colour = NA) + 
   # coord_equal() + 
   scale_y_continuous(labels = scales::label_percent(scale = 1, suffix = " %")) +
   scale_x_continuous(labels = scales::label_percent(scale = 1, suffix = " %")) + 
@@ -1685,10 +1896,6 @@ bind_rows(
     ungroup() |> 
     rename(category = rr_education) |> 
     mutate(indicator = "Vzdělání"),
-  typ_domacnosti_data |> 
-    ungroup() |> 
-    rename(category = typ_domacnosti) |> 
-    mutate(indicator = "Typ domácnosti"),
   bydleni_data |> 
     ungroup() |> 
     rename(category = r_tenure_status) |> 
@@ -1696,8 +1903,55 @@ bind_rows(
 ) |> 
   ggplot(aes(x = category, y = pct_under_arop, fill = r_country)) + 
   geom_bar(stat = "identity", position = "dodge") + 
-  facet_wrap(~indicator, scales = "free") + 
+  facet_wrap(indicator~., scales = "free") + 
   coord_flip()
+
+g1 <- typ_domacnosti_data |> 
+    ungroup() |> 
+    rename(category = typ_domacnosti) |> 
+    mutate(indicator = "Typ domácnosti") |> 
+    ggplot(aes(x = category, y = pct_under_arop, fill = r_country)) + 
+    geom_bar(stat = "identity", position = "dodge") + 
+    coord_flip() + 
+    labs(x = "", y = "% domácností", fill = "", 
+          title = "typ domácnosti") + 
+    theme(legend.position = "top") + 
+    theme_paq() + 
+    scale_fill_manual(values = paleta_kategoricka(2))
+
+g2 <- vzdelani_data |> 
+    ungroup() |> 
+    rename(category = rr_education) |> 
+    mutate(indicator = "Vzdělání") |> 
+    ggplot(aes(x = category, y = pct_under_arop, fill = r_country)) + 
+    geom_bar(stat = "identity", position = "dodge") + 
+    coord_flip() + 
+    labs(x = "", y = "% domácností", fill = "", 
+          title = "vzdělání") + 
+    theme(legend.position = "top") + 
+    theme_paq() + 
+    theme_paq() + 
+    scale_fill_manual(values = paleta_kategoricka(2))
+
+g3 <- bydleni_data |> 
+    ungroup() |> 
+    rename(category = r_tenure_status) |> 
+    mutate(indicator = "Typ bydlení") |> 
+    ggplot(aes(x = category, y = pct_under_arop, fill = r_country)) + 
+    geom_bar(stat = "identity", position = "dodge") + 
+    coord_flip() + 
+    labs(x = "", y = "% domácností", fill = "", 
+          title = "typ bydlení") + 
+    theme(legend.position = "top") + 
+    theme_paq() + 
+    theme_paq() + 
+    scale_fill_manual(values = paleta_kategoricka(2))
+
+g1 + (g2 / g3) + 
+  plot_layout(guides = 'collect') & 
+  theme(legend.position='bottom')
+
+save_plot(last_plot(), "figs/arop/cr_chudoba_skupiny.png")
 
 ```
 

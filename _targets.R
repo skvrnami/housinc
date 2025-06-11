@@ -1282,53 +1282,53 @@ list(
       )
   }),
 
-  tar_target(
-    precarity_2004,
-    hh_r_silc_2004 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2004,
+    # hh_r_silc_2004 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2005,
-    hh_r_silc_2005 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2005,
+    # hh_r_silc_2005 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2006,
-    hh_r_silc_2006 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2006,
+    # hh_r_silc_2006 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2007,
-    hh_r_silc_2007 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2007,
+    # hh_r_silc_2007 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2008,
-    hh_r_silc_2008 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2008,
+    # hh_r_silc_2008 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2009,
-    hh_r_silc_2009 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2009,
+    # hh_r_silc_2009 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2010,
-    hh_r_silc_2010 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2010,
+    # hh_r_silc_2010 %>%
+      # summarise_precarity()
+  # ),
 
-  tar_target(
-    precarity_2011,
-    hh_r_silc_2011 %>%
-      summarise_precarity()
-  ),
+  # tar_target(
+    # precarity_2011,
+    # hh_r_silc_2011 %>%
+      # summarise_precarity()
+  # ),
 
   tar_target(
     precarity_2012,
@@ -1421,14 +1421,14 @@ list(
     # all_silc_households %>%
     #   summarise_precarity()
     bind_rows(
-      precarity_2004, 
-      precarity_2005, 
-      precarity_2006, 
-      precarity_2007,
-      precarity_2008,
-      precarity_2009,
-      precarity_2010,
-      precarity_2011,
+      # precarity_2004, 
+      # precarity_2005, 
+      # precarity_2006, 
+      # precarity_2007,
+      # precarity_2008,
+      # precarity_2009,
+      # precarity_2010,
+      # precarity_2011,
       precarity_2012,
       precarity_2013,
       precarity_2014,
@@ -1596,6 +1596,54 @@ list(
            width = 8, height = 6, bg = "white")
   ),
 
+  tar_target(
+    chart_affordability_eurostat, {
+      all_silc_households_precarity %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+        ggplot(., aes(x = year, y = mean_housing_overburden_eurostat)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow= 2) +
+        labs(# title = "Housing overburden according to Eurostat methodology",
+             # subtitle = "Share of households paying more than 40% of its income on housing costs",
+             x = "", y = "", 
+             # caption = ""
+             ) +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                           limits = c(0, NA))
+    }
+  ),
+
+  tar_target(
+    chart_affordability_eurostat_file,
+    ggsave("paper/figs/fig_dim_affordability_eurostat.png", chart_affordability_eurostat,
+           width = 8, height = 6, bg = "white"), 
+    format = "file"
+  ),
+
+  tar_target(
+    chart_affordability_selected_countries2,
+      all_silc_households_precarity %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+        ggplot(., aes(x = year, y = mean_dim_affordability)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow= 2) +
+        labs(# title = "Housing affordability",
+             # subtitle = "Share of households paying more than 40% of its income on housing costs",
+             x = "", y = "") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                           limits = c(0, NA))
+  ),
+
+  tar_target(
+    chart_affordability_selected_file2,
+    ggsave("paper/figs/fig_dim_affordability.png", chart_affordability_selected_countries2,
+           width = 8, height = 6, bg = "white"), 
+    format = "file"
+  ),
 
   ### Insecurity --------------------------------
   tar_target(
@@ -1690,6 +1738,46 @@ list(
            width = 10, height = 9, bg = "white")
   ),
 
+  tar_target(
+    chart_insecurity_selected_countries2, {
+      data <- all_silc_households_precarity %>%
+        filter(year >= 2008) %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE"))
+
+      data |> 
+        select(country, year, mean_dim_insecurity, mean_arrears_mortgage_rent, mean_arrears_utility) %>%
+        tidyr::pivot_longer(
+          cols = c(mean_dim_insecurity, mean_arrears_mortgage_rent, mean_arrears_utility),
+          names_to = "dimension",
+          values_to = "mean_dim_insecurity"
+        ) %>%
+        mutate(dimension = recode(dimension,
+          mean_dim_insecurity = "Housing insecurity",
+          mean_arrears_mortgage_rent = "Arrears on mortgage/rent",
+          mean_arrears_utility = "Arrears on utilities"
+        )) %>% 
+        mutate(dimension = factor(dimension, levels = c("Housing insecurity", "Arrears on mortgage/rent", "Arrears on utilities"))) %>%
+        ggplot(., aes(x = year, y = mean_dim_insecurity, colour = dimension)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow= 2) +
+        labs(#title = "Housing insecurity",
+             #subtitle = "Share of households with arrears on rent, mortgage or utilities",
+             x = "", y = "", colour = "") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                           limits = c(0, NA)) + 
+        theme(legend.position = "top")
+    }
+  ),
+
+  tar_target(
+    chart_insecurity_selected_countries_file2,
+    ggsave("paper/figs/fig_dim_insecurity.png", chart_insecurity_selected_countries2,
+           width = 8, height = 6, bg = "white"), 
+    format = "file"
+  ),
+
   ### Quality --------------------------------
   tar_target(
     chart_quality,
@@ -1778,6 +1866,48 @@ list(
     ggsave("figs/time_quality_warm.png",
            chart_quality_warm,
            width = 10, height = 9, bg = "white")
+  ),
+
+tar_target(
+    chart_quality_selected_countries2, {
+      data <-  all_silc_households_precarity %>%
+      filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE"))
+      
+      data |> 
+        select(country, year, mean_dim_quality, mean_overcrowded_eu, mean_ability_to_keep_warm) %>%
+        tidyr::pivot_longer(
+          cols = c(mean_dim_quality, mean_overcrowded_eu, mean_ability_to_keep_warm),
+          names_to = "dimension",
+          values_to = "mean_dim_quality"
+        ) %>%
+        mutate(dimension = recode(dimension,
+          mean_dim_quality = "Poor housing quality",
+          mean_overcrowded_eu = "Overcrowded dwelling",
+          mean_ability_to_keep_warm = "Unable to keep dwelling warm"
+        )) %>% 
+        mutate(dimension = factor(dimension, levels = c("Poor housing quality", "Overcrowded dwelling", "Unable to keep dwelling warm"))) %>%
+        ggplot(., aes(x = year, y = mean_dim_quality, colour = dimension)) +
+        geom_line() +
+        geom_point(size = 0.7) +
+        theme_minimal(base_size = 14) +
+        facet_wrap(~country, nrow = 2) +
+        labs(#title = "Housing quality",
+           # subtitle = "Share of households with poor housing quality\n(overcrowding or unable to keep warm)",
+           x = "", y = "", colour = "") +
+        scale_y_continuous(labels = scales::label_percent(scale = 1),
+                         limits = c(0, NA)) + 
+        theme(legend.position = "top")
+        
+      
+    }
+    
+  ),
+
+  tar_target(
+    chart_quality_selected_countries_file2,
+    ggsave("paper/figs/fig_dim_quality.png",
+           chart_quality_selected_countries2,
+           width = 8, height = 6, bg = "white")
   ),
 
   ### Locality --------------------------------
@@ -1902,7 +2032,7 @@ list(
   tar_target(
     chart_dimensions_selected, {
       all_silc_households_precarity %>%
-        filter(country %in% c("UK", "FI", "DE", "NL",
+        filter(country %in% c("FI", "DE", "NL",
                               "RO", "IT", "BE", "CZ",
                               "EE")) %>%
         pivot_longer(., cols = matches("dim3_[0-9]"),
@@ -1923,7 +2053,7 @@ list(
 
   tar_target(
     chart_dimensions_file_selected,
-    ggsave("figs/precarity_dimensions_selected.png", chart_dimensions_selected,
+    ggsave("paper/figs/precarity_dimensions_selected.png", chart_dimensions_selected,
            bg = "white", width = 10, height = 7)
   ),
 

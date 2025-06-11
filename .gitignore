@@ -1,4 +1,5 @@
 *.pdf
+*.docx
 
 data/silc/
 data/silc_long/
@@ -11,3 +12,4 @@ tabs/*.xlsx
 
 arop_files/*
 housing_benefits_files/*
+eligibility_files/*

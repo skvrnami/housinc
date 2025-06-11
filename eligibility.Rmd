@@ -9,6 +9,7 @@ output: html_document
 library(dplyr)
 library(haven)
 library(Hmisc)
+library(ggplot2)
 library(targets)
 library(MatchIt)
 
@@ -186,7 +187,9 @@ m_out <- matchit(takeup_allowance_housing ~ n_persons +
           filter(!is.na(region)))
 
 summary(m_out)
+png("paper/figs/cze-covars.png", width = 640)
 plot(summary(m_out))
+dev.off()
 
 m_data <- match_data(m_out) %>% 
   mutate(takeup_allowance_housing = factor(takeup_allowance_housing, 
@@ -239,7 +242,7 @@ modelsummary::modelplot(m1_aff, exponentiate = TRUE,
   geom_vline(xintercept = 1) + 
   ggtitle("Effect of housing benefits on unaffordability")
 
-ggsave("figs/fig_effect_affordability.png", width = 8, height = 6, bg = "white")
+ggsave("paper/figs/fig_effect_affordability.png", width = 8, height = 6, bg = "white")
   
 
 modelsummary::modelplot(m1_qual, exponentiate = TRUE,
@@ -251,10 +254,101 @@ modelsummary::modelplot(m1_qual, exponentiate = TRUE,
   geom_vline(xintercept = 1) + 
   ggtitle("Effect of housing benefits on quality")
 
-ggsave("figs/fig_effect_quality.png", width = 8, height = 6, bg = "white")
+ggsave("paper/figs/fig_effect_quality.png", width = 8, height = 6, bg = "white")
 # ggeffects::ggeffect(m1_aff, terms = c("takeup_allowance_housing")) %>% 
 #   plot()
 
+
+glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data) %>% 
+  modelsummary::modelsummary(., stars = TRUE)
+glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data) %>% 
+  modelsummary::modelsummary(., stars = TRUE)
+
+glm(ability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data |> mutate(ability_to_keep_warm = as.numeric(ability_to_keep_warm == "Yes"))) %>% 
+  modelsummary::modelsummary(., stars = TRUE)
+
+
+glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data)
+
+cz_affordability <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data)
+
+cz_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data)
+
+cz_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data |> 
+      mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+
+cz_arrears_utility <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data |> 
+      mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+
+cz_quality <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data)
+
+cz_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data)
+cz_warm <- glm(ability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
+      income_disposable_wo_housing, 
+    family = "binomial",
+    data = m_data |> mutate(ability_to_keep_warm = as.numeric(ability_to_keep_warm == "Yes")))
+
+pr2 <- data.frame(
+  label = "pseudo-R2",
+  x1 = pscl::pR2(cz_affordability)["McFadden"], 
+  x2 = pscl::pR2(cz_insecurity)["McFadden"],
+  x3 = pscl::pR2(cz_quality)["McFadden"],
+  x4 = pscl::pR2(cz_arrears_mortgage_rent)["McFadden"],
+  x5 = pscl::pR2(cz_arrears_utility)["McFadden"],
+  x6 = pscl::pR2(cz_overcrowded)["McFadden"],
+  x7 = pscl::pR2(cz_warm)["McFadden"]
+)
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = cz_affordability, 
+    "Insecurity" = cz_insecurity, 
+    "Poor quality" = cz_quality, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
+    "Arrears on utilities" = cz_arrears_utility, 
+    "Overcrowded" = cz_overcrowded, 
+    "Unable to keep warm" = cz_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2
+)
 
 ```
 
@@ -562,14 +656,14 @@ glm(ability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_hous
 
 
 ## Austria
-```{r}
+```{r, eval=FALSE}
 at_2023 <- r_silc_2023 %>% 
   filter(country == "AT")
 ```
 
 
 ## Netherlands
-```{r}
+```{r, eval=FALSE}
 # https://euromod-web.jrc.ec.europa.eu/sites/default/files/2025-04/Y15_CR_NL_final.pdf
 nl_2023 <- r_silc_2023 %>% 
   filter(country == "NL")

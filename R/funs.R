@@ -394,7 +394,8 @@ calculate_required_rooms <- function(df){
 recode_vars <- function(df, r_rooms){
   full_join(df, r_rooms, by = c("hh_id", "country", "year")) %>%
     mutate(
-      allowance_housing = if_else(allowance_housing < 0, 0, allowance_housing)
+      allowance_housing = if_else(allowance_housing < 0, 0, allowance_housing), 
+      income_disposable = if_else(income_disposable < 0, 0, income_disposable)
     ) %>%
     mutate(
       total_housing_cost = if_else(total_housing_cost < 0, 0, total_housing_cost),
@@ -404,8 +405,11 @@ recode_vars <- function(df, r_rooms){
         (income_disposable / 12) * 100,
       income_share_on_housing_wo_hb = total_housing_cost /
         ((income_disposable - allowance_housing) / 12) * 100,
+      income_share_on_housing_eurostat = (total_housing_cost - allowance_housing) / 
+        ((income_disposable - allowance_housing) / 12) * 100,
       housing_overburden = as.numeric(income_share_on_housing > 40),
       housing_overburden_wo_hb = as.numeric(income_share_on_housing_wo_hb > 40),
+      housing_overburden_eurostat = as.numeric(income_share_on_housing_eurostat > 40)
     ) %>%
     mutate(
       flag_income_share_on_housing_out_of_range =
@@ -419,6 +423,11 @@ recode_vars <- function(df, r_rooms){
         income_share_on_housing_wo_hb < 0 ~ 0,
         income_share_on_housing_wo_hb > 100 ~ 100,
         TRUE ~ income_share_on_housing_wo_hb
+      ), 
+      income_share_on_housing_eurostat = case_when(
+        income_share_on_housing_eurostat < 0 ~ 0, 
+        income_share_on_housing_eurostat > 100 ~ 100,
+        TRUE ~ income_share_on_housing_eurostat
       )
     )
 }
@@ -472,6 +481,7 @@ summarise_precarity <- function(df){
       mean_housing_overburden = wtd.mean(housing_overburden, w = hh_cross_weight) * 100,
 
       mean_housing_overburden_wo_hb = wtd.mean(housing_overburden_wo_hb, w = hh_cross_weight) * 100,
+      mean_housing_overburden_eurostat = wtd.mean(housing_overburden_eurostat, w = hh_cross_weight) * 100,
       # tenure security
       mean_arrears_mortgage_rent = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"),
                                             w = hh_cross_weight) * 100,
