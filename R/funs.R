@@ -337,6 +337,16 @@ select_and_rename_personal <- function(df){
       )
   }
 
+  if("PW010" %in% colnames(out)){
+    out <- out |> 
+      rename(
+        overall_life_satisfaction = PW010, 
+        general_health = PH010, 
+        chronic_illness = PH020, 
+        limitation_due_to_health = PH030
+      )
+  }
+  
   out %>%
     select(-starts_with("P", ignore.case = FALSE)) %>%
     mutate(r_education = recode_education(education))

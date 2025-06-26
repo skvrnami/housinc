@@ -1465,7 +1465,7 @@ list(
         hh_r_silc_2022,
         hh_r_silc_2023
       ) %>%
-        filter(grepl("Tenant", tenure_status)) %>%
+        dplyr::filter(grepl("Tenant", tenure_status)) %>%
         summarise_precarity()
     }),
 
@@ -1548,7 +1548,12 @@ list(
           TRUE ~ code
         )
       ) %>%
-      filter(code %in% all_silc_households$country) %>%
+      filter(code %in% c(
+        "SE", "FI", "EE", "IE", "UK", "DK", "NL", 
+        "LV", "LT", "DE", "PL", "BE", "CZ", "SK", 
+        "FR", "AT", "LU", "RO", "HU", "SI", "ES",
+        "PT", "BG", "HR", "IT", "EL", "MT", "CY"
+      )) %>%
       as.data.frame()
   ),
 
@@ -2211,10 +2216,10 @@ tar_target(
     core_countries, {
       all_silc_households_precarity %>%
         mutate(country = as.character(country)) %>%
-        filter(country %in% c("UK", "FI", "DE", "NL",
+        dplyr::filter(year == 2023) %>%
+        dplyr::filter(country %in% c("UK", "FI", "DE", "NL",
                               "RO", "IT", "BE", "CZ",
                               "EE")) %>%
-        filter(year == 2023) %>%
         mutate(
           country = case_when(
             country == "UK" ~ "United Kingdom",
