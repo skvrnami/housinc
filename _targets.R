@@ -1407,13 +1407,15 @@ list(
         probs_noise = NA,
         probs_pollution = NA,
         probs_crime = NA) %>%
-      summarise_precarity()
+      summarise_precarity() |> 
+      mutate(country = as.character(country))
   ),
 
   tar_target(
     precarity_2023,
-    hh_r_silc_2023 %>%
-      summarise_precarity()
+    hh_r_silc_2023 |> 
+      summarise_precarity() |> 
+      mutate(country = as.character(country))
   ),
 
   tar_target(
@@ -1826,7 +1828,8 @@ list(
     chart_quality_selected_countries_file,
     ggsave("figs/fig_dim_quality.png",
            chart_quality_selected_countries,
-           width = 8, height = 6, bg = "white")
+           width = 10, height = 6, bg = "white"), 
+    format = "file"
   ),
 
   tar_target(

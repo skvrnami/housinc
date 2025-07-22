@@ -1,0 +1,105 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' class='svglite' width='640.00pt' height='450.00pt' viewBox='0 0 640.00 450.00'>
+<defs>
+  <style type='text/css'><![CDATA[
+    .svglite line, .svglite polyline, .svglite polygon, .svglite path, .svglite rect, .svglite circle {
+      fill: none;
+      stroke: #000000;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-miterlimit: 10.00;
+    }
+    .svglite text {
+      white-space: pre;
+    }
+  ]]></style>
+</defs>
+<rect width='100%' height='100%' style='stroke: none; fill: #FFFFFF;'/>
+<defs>
+  <clipPath id='cpMC4wMHw2NDAuMDB8MC4wMHw0NTAuMDA='>
+    <rect x='0.00' y='0.00' width='640.00' height='450.00' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpMC4wMHw2NDAuMDB8MC4wMHw0NTAuMDA=)'>
+</g>
+<defs>
+  <clipPath id='cpNDUuMTN8NjM0LjUyfDIzLjQxfDQyMC45Nw=='>
+    <rect x='45.13' y='23.41' width='589.39' height='397.56' />
+  </clipPath>
+</defs>
+<g clip-path='url(#cpNDUuMTN8NjM0LjUyfDIzLjQxfDQyMC45Nw==)'>
+<polyline points='45.13,402.75 634.52,402.75 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='45.13,273.16 634.52,273.16 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='45.13,143.58 634.52,143.58 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='198.47,420.97 198.47,23.41 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='354.15,420.97 354.15,23.41 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<polyline points='509.82,420.97 509.82,23.41 ' style='stroke-width: 0.53; stroke: #EBEBEB; stroke-linecap: butt;' />
+<line x1='45.13' y1='289.42' x2='634.52' y2='289.42' style='stroke-width: 1.07; stroke: #999999; stroke-linecap: butt;' />
+<line x1='372.59' y1='420.97' x2='372.59' y2='23.41' style='stroke-width: 1.07; stroke: #999999; stroke-linecap: butt;' />
+<circle cx='344.98' cy='178.76' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='218.01' cy='217.85' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='597.47' cy='402.90' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='429.87' cy='358.46' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='377.05' cy='270.32' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='211.34' cy='322.30' r='1.95' style='stroke-width: 0.71; stroke: #FF0000; fill: #FF0000;' />
+<circle cx='327.24' cy='225.69' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='485.09' cy='338.41' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='286.21' cy='264.70' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='330.77' cy='249.95' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='359.81' cy='239.22' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='404.23' cy='374.38' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='341.01' cy='390.48' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='323.97' cy='204.56' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='426.71' cy='266.88' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='548.17' cy='368.90' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='607.73' cy='352.82' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='374.74' cy='41.48' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='503.90' cy='265.05' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='271.35' cy='221.87' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='316.14' cy='325.93' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='516.12' cy='350.08' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='361.53' cy='382.09' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='71.92' cy='381.20' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='213.65' cy='274.84' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='413.43' cy='276.15' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<circle cx='397.41' cy='269.18' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
+<text x='357.68' y='174.12' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Rakousko</text>
+<text x='205.44' y='213.32' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='30.66px' lengthAdjust='spacingAndGlyphs'>Belgie</text>
+<text x='584.88' y='415.34' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Bulharsko</text>
+<text x='442.55' y='353.86' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='55.79px' lengthAdjust='spacingAndGlyphs'>Chorvatsko</text>
+<text x='364.32' y='282.90' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='22.68px' lengthAdjust='spacingAndGlyphs'>Kypr</text>
+<text x='224.08' y='317.66' text-anchor='middle' style='font-size: 11.04px;fill: #FF0000; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Česko</text>
+<text x='314.54' y='221.09' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='37.40px' lengthAdjust='spacingAndGlyphs'>Dánsko</text>
+<text x='472.52' y='333.83' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='45.37px' lengthAdjust='spacingAndGlyphs'>Estonsko</text>
+<text x='273.51' y='277.25' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='32.49px' lengthAdjust='spacingAndGlyphs'>Finsko</text>
+<text x='318.06' y='262.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='36.78px' lengthAdjust='spacingAndGlyphs'>Francie</text>
+<text x='372.44' y='234.60' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='46.58px' lengthAdjust='spacingAndGlyphs'>Německo</text>
+<text x='417.75' y='370.48' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Řecko</text>
+<text x='328.38' y='402.93' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.57px' lengthAdjust='spacingAndGlyphs'>Maďarsko</text>
+<text x='336.53' y='200.01' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.90px' lengthAdjust='spacingAndGlyphs'>Irsko</text>
+<text x='439.34' y='262.37' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Itálie</text>
+<text x='560.80' y='381.43' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='43.53px' lengthAdjust='spacingAndGlyphs'>Lotyšsko</text>
+<text x='619.27' y='348.23' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Litva</text>
+<text x='387.46' y='36.84' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='66.21px' lengthAdjust='spacingAndGlyphs'>Lucembursko</text>
+<text x='491.13' y='277.56' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='26.97px' lengthAdjust='spacingAndGlyphs'>Malta</text>
+<text x='258.64' y='217.30' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='60.06px' lengthAdjust='spacingAndGlyphs'>Nizozemsko</text>
+<text x='328.80' y='321.34' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='33.11px' lengthAdjust='spacingAndGlyphs'>Polsko</text>
+<text x='528.72' y='362.60' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='58.25px' lengthAdjust='spacingAndGlyphs'>Portugalsko</text>
+<text x='368.52' y='377.50' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='52.72px' lengthAdjust='spacingAndGlyphs'>Rumunsko</text>
+<text x='84.55' y='376.62' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='50.89px' lengthAdjust='spacingAndGlyphs'>Slovensko</text>
+<text x='226.37' y='270.29' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='47.20px' lengthAdjust='spacingAndGlyphs'>Slovinsko</text>
+<text x='426.17' y='288.63' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='51.51px' lengthAdjust='spacingAndGlyphs'>Španělsko</text>
+<text x='399.25' y='264.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='42.31px' lengthAdjust='spacingAndGlyphs'>Švédsko</text>
+</g>
+<g clip-path='url(#cpMC4wMHw2NDAuMDB8MC4wMHw0NTAuMDA=)'>
+<text x='40.19' y='405.78' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='23.45px' lengthAdjust='spacingAndGlyphs'>10000</text>
+<text x='40.19' y='276.19' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='24.00px' lengthAdjust='spacingAndGlyphs'>20000</text>
+<text x='40.19' y='146.61' text-anchor='end' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='24.03px' lengthAdjust='spacingAndGlyphs'>30000</text>
+<text x='198.47' y='431.96' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='8.76px' lengthAdjust='spacingAndGlyphs'>25</text>
+<text x='354.15' y='431.96' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='9.30px' lengthAdjust='spacingAndGlyphs'>30</text>
+<text x='509.82' y='431.96' text-anchor='middle' style='font-size: 8.80px;fill: #4D4D4D; font-family: "Fira Sans";' textLength='8.80px' lengthAdjust='spacingAndGlyphs'>35</text>
+<text x='339.82' y='442.64' text-anchor='middle' style='font-size: 8.80px; font-family: "Fira Sans";' textLength='86.26px' lengthAdjust='spacingAndGlyphs'>Gini koeficient příjmů</text>
+<text transform='translate(11.54,222.19) rotate(-90)' text-anchor='middle' style='font-size: 8.80px; font-family: "Fira Sans";' textLength='205.24px' lengthAdjust='spacingAndGlyphs'>Mediánový ekvivalizovaný příjem domácnosti v PPP</text>
+<text x='5.48' y='15.08' style='font-size: 13.20px; font-weight: 800; font-family: "Inter";' textLength='330.50px' lengthAdjust='spacingAndGlyphs'>Česko má nízké příjmy a nízké příjmové nerovnosti</text>
+</g>
+</svg>

@@ -7,14 +7,15 @@
 
 #show: word-count
 
-#show figure.where(
-  kind: table
-): set figure.caption(position: top)
+// #show figure.where(
+//   kind: table
+// ): set figure.caption(position: top)
+// 
+// #show figure.where(
+//   kind: image
+// ): set figure.caption(position: top)
 
-#show figure.where(
-  kind: image
-): set figure.caption(position: top)
-
+#show figure: set figure.caption(position: top)
 
 // title 
 
@@ -193,6 +194,30 @@ Finally, @fig-quality shows the quality dimension of housing precarity. It shows
 
 // descriptive stats
 // with current take-up vs. with full take-up
+== What predicts housing precarity? 
+
+Next we examine which household characteristics are associated with housing precarity and its dimensions according to the 2023 EU-SILC data. The results shown in @tab-all-models indicate that the effects of characteristics may vary when considering overall housing precarity or only a single dimension of precarity such as unaffordability, insecurity or poor housing quality. 
+Only quantiles of equivalised income have the same effect across housing precarity and all dimensions as the higher quantile is associated with lower probability of housing precarity, unaffordability, insecurity, and poor housing quality. 
+
+Tenure status also has mostly consistent effects across all dimensions with owners with outstanding mortgage and tenants with market and reduced rent have higher probability of housing precarity and its dimensions than owners without outstanding mortgage. 
+The only exception are tenants whose accommodation is provied rent-free who are slightly more likely to be in housing precarity than owners without mortgage. At the same time, they are less likely to suffer from housing unaffordability and more likely to live in poor housing conditions. 
+
+// Age 
+// Econ. status
+Concerning age of the head of the household, younger age is associated with higher probability of housing precarity, but it varies with regard to particular dimensions. Younger households are more likely to be in unaffordable and poor quality housing, but they are less likely to be insecure than households with middle-aged heads. The position of younger households may also complicate the fact that the households whose head is neither employed nor retired (Economic status: Other, that is students, unemployed, etc.) are more likely to be precarious.  
+In contrast, older households are less likely to be precarious. Also, being retired is associated with lower probability of unaffordability. 
+
+// HH type
+The composition of household also affects housing precarity. The type of household least affected by housing precarity is a household composed of several adults, all other types of housholds (adults with children, lone parent or lone adult) are more likely to be precarious. Curiously, adults with children are less likely to suffer from unaffordability, but they are more likely to be insecure and live in poor quality of housing, possibly due to overcrowding of their households. 
+
+// dwelling type
+The same applies to households living in flats - they are more likely to be precarious and live in poor housing quality, but less likely to live in unaffordable dwelling than households living in detached house. Households living in semi-detached houses are also less likely to live in unaffordable housing, but their housing is more likely to be of poor quality. However, their housing precarity is not statistically distinguishable from households living in detached houses. 
+
+Finally, the models also include variable capturing whether the dwelling was renovated in the past 5 years. The results show that renovation is associated with slightly lower housing precarity. When looking at the models explaining particular dimensions, the models show that renovation have only statistically significant effect in the model explaining poor housing quality - renovation is associated with lower probability of poor housing quality indicating the the households were more likely to keep their dwelling warm because of the renovation. In contrast, the respondents who do not know if the dwelling was renovated are more likely to be in housing precarity. 
+In the public policy debates, it is argued that there is a trade-off with regard to renovations. They can improve insulation of the dwelling and reduce energy costs, but at the same time they may contribute to rising rents and thus unaffordability. To test whether, the effects of renovation differs between owners and tenants we estimated models with an interaction between tenure status and renovation. The results are presented in the Appendix in @app-tab-interaction and Figures 7-10 which do not indicate that the renovations would increase unaffordability among the tenants.
+However, the effects of renovation vary across countries (see Tables 2-9 in the Appendix). In the case of Czechia and Germany, living in a renovated dwelling is associated with higher probability of unaffordability. 
+
+#include "tabs/all_models.typ"
 
 == Effect of housing benefits on housing precarity
 
@@ -238,7 +263,14 @@ Based on the matched data, we then estimate the effect of housing benefit on ind
 
 = Discussion
 
-*TODO*
+This paper highlights three issues:
+
+1. Housing precarity increased during few last years due to effects of energy crisis following the Russian full-scale invasion to Ukraine. In some countries, this reversed the trend of decreasing housing precarity. 
+
+2. Trade-offs exist. The results of regression models explaining housing precarity and its dimension indicate that the same characteristics may have different effects across dimensions. 
+
+3. The effects of housing benefits are limited and may decrease housing precarity only partly through increasing affordability as the eligibility is based on the ratio between housing costs and income. 
+
 
 #bibliography("literature.bib", style: "apa")
 
@@ -259,7 +291,7 @@ Based on the matched data, we then estimate the effect of housing benefit on ind
     //
     [*security* (1/2): had to move in the past 5 years due to eviction or landlord did not renew the contract or will have to move in the next year], 
     [*security*: rent arrears in last 12 months; crime, violence, or vandalism in the area], 
-    [*security*: concern of involuntary relocation in teh next 5 years], 
+    [*security*: concern of involuntary relocation in the next 5 years], 
     [*forced move*: had to move because of eviction or property no longer being available], 
     //
     [*quality* (at least 2 out of 6): ability to keep the home adequately warm/cool; bath/shower in the dwelling; toilet in the dwelling; leaks/dampness; overcrowding],
@@ -313,6 +345,59 @@ Based on the matched data, we then estimate the effect of housing benefit on ind
   ]
 ) <overburden-app>
 
+=== Models of housing precarity
+
+#include "tabs/be_models.typ"
+
+#include "tabs/cz_models.typ"
+
+#include "tabs/de_models.typ"
+
+#include "tabs/ee_models.typ"
+
+#include "tabs/fi_models.typ"
+
+#include "tabs/it_models.typ"
+
+#include "tabs/nl_models.typ"
+
+#include "tabs/ro_models.typ"
+
+==== Interaction between tenure status and renovation
+
+#include "tabs/all_models_interaction.typ"
+
+#figure(
+  [#image("figs/pp_all.png")
+  ],
+  caption: [
+    Predicted probability of housing precarity
+  ]
+) <pp-all-app>
+
+#figure(
+  [#image("figs/pp_affordability.png")
+  ],
+  caption: [
+    Predicted probability of housing unaffordability
+  ]
+) <pp-aff-app>
+
+#figure(
+  [#image("figs/pp_insecurity.png")
+  ],
+  caption: [
+    Predicted probability of housing insecurity
+  ]
+) <pp-ins-app>
+
+#figure(
+  [#image("figs/pp_quality.png")
+  ],
+  caption: [
+    Predicted probability of low housing quality
+  ]
+) <pp-qual-app>
 
 // how much calculated benefits differ from actual benefits
 
