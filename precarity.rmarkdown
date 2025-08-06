@@ -6,7 +6,6 @@ format:
     code-summary: "Show the code"
 ---
 
-
 ```{r setup, include=FALSE, warnings=FALSE, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
@@ -21,18 +20,19 @@ library(tinytable)
 
 ```
 
+
 # Descriptives
 
 ## Housing precarity
 
+
 ```{r}
-tar_load(hh_r_silc_2020)
+tar_load(hh_r_silc_2019)
 tar_load(hh_r_silc_2023)
 ```
 
-
 ```{r}
-hh_2020 <- hh_r_silc_2020 |> 
+hh_2019 <- hh_r_silc_2019 |> 
     mutate(country = as.character(country)) |> 
     filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) |> 
     mutate(
@@ -168,7 +168,9 @@ hh_2023 <- hh_r_silc_2023 |>
     filter(hh_type != "Other")
 ```
 
+
 # Descriptive stats
+
 
 ```{r}
 hh_2023 |> 
@@ -218,6 +220,7 @@ hh_2023 |>
 
 ```
 
+
 # 
 
 Co tam chci dát:
@@ -228,178 +231,36 @@ Co tam chci dát:
 - [x] typ vytápění
 - [x] typ bytu
 
-## 2020
+## 2019
+
 ```{r}
 
-m0_2020 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+m0_2019 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile +
     r_dwelling_type + r_econ_status +  # urbanisation 
     country, 
     family = binomial(link = "logit"),
-    data = hh_2020)
+    data = hh_2019)
 
-m1_2020 <- glm(dim_affordability ~ tenure_status + hh_type + 
+m1_2019 <- glm(dim_affordability ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile +
     r_dwelling_type + r_econ_status +  # urbanisation 
     country, 
     family = binomial(link = "logit"),
-    data = hh_2020)
+    data = hh_2019)
 
-m2_2020 <- glm(dim_insecurity ~ tenure_status + hh_type + 
+m2_2019 <- glm(dim_insecurity ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile +
      # urbanisation 
     r_dwelling_type + r_econ_status + country, 
     family = binomial(link = "logit"),
-    data = hh_2020)
+    data = hh_2019)
 
-m3_2020 <- glm(dim_quality ~ tenure_status + hh_type + 
+m3_2019 <- glm(dim_quality ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + # urbanisation 
     r_dwelling_type + r_econ_status + country, 
     family = binomial(link = "logit"),
-    data = hh_2020)
-
-# m1b <- glmer(dim_affordability ~ tenure_status + (1 + tenure_status | country), 
-#             family = binomial(link = "logit"),
-#             data = hh_2023)
-
-r2 <- function(x){
-    as.character(sprintf("%.2f", pscl::pR2(x)["McFadden"]))
-}
-
-COEF_MAP <- c(
-        "hh_ageBelow 25" = "Below 25",
-        "hh_ageAbove 65" = "Above 65",
-        "r_econ_statusRetired" = "Retired",
-        "r_econ_statusOther" = "Other",
-        "tenure_statusOwner with outstanding mortgage" = "Owner with mortgage",
-        "tenure_statusTenant, rent at market price" = "Tenant, market rent",
-        "tenure_statusTenant, rent at reduced price" = "Tenant, reduced rent",
-        "tenure_statusTenant, rent free" = "Tenant, rent free",
-        "hh_typeAdults with children" = "Adults with children",
-        "hh_typeLone parent with children" = "Lone parent with children",
-        "hh_typeLone adult" = "Lone adult",
-        "income_disposable_eqi_quantile2nd quantile" = "2nd quantile",
-        "income_disposable_eqi_quantile3rd quantile" = "3rd quantile",
-        "income_disposable_eqi_quantile4th quantile" = "4th quantile",
-        "income_disposable_eqi_quantile5th quantile (highest)" = "5th quantile (highest)",
-        "r_dwelling_typeSemi-detached or terraced house" = "Semi-detached house",
-        "r_dwelling_typeAppartment" = "Appartment/flat",
-        # "r_heating_systemCentral heating system" = "Central heating system",
-        # "r_heating_systemDistrict heating network/teleheating" = "District heating network/teleheating", 
-        # "r_heating_systemOther" = "Other heating system",
-        # "r_renovatedYes" = "Renovated in the past 5 years",
-        # "r_renovatedDon't know" = "Don't know",
-        "(Intercept)"= "Intercept"
-    )
-
-new_rows <- tribble(
-    ~name, ~x1, ~x2, ~x3, ~x4, 
-    # "Age (ref. 26-64)", "", "", "", "", 
-    # "Household head economic status (ref. employed)", "", "", "", "", 
-    # "Tenure status (ref. owner without mortgage)", "", "", "", "", 
-    # "Household type (ref. adults without children)", "", "", "", "", 
-    # "Houshold equalised income (ref. 1st quantile)", "", "", "", "", 
-    # "Dwelling type (ref. detached house)", "", "", "", "", 
-    "Country FE", "Yes", "Yes", "Yes", "Yes", 
-    "Pseudo-R2", r2(m0_2020), r2(m1_2020), r2(m2_2020), r2(m3_2020)
-)
-
-attr(new_rows, "position") <- c(
-    # 1, 6, 11, 20, 27, 41, 
-    length(COEF_MAP) * 2 + nrow(new_rows) - 1,
-    length(COEF_MAP) * 2 + nrow(new_rows))
-
-modelsummary(
-    list(
-         "Precarity"= list(m0_2020), 
-        "Unaffordability"= list(m1_2020),
-        "Insecurity"= list(m2_2020), 
-        "Low quality"= list(m3_2020)), stars = TRUE, 
-    coef_rename = COEF_MAP,
-    coef_omit = "country",
-    gof_map = c("nobs"), 
-    add_rows = new_rows,
-    shape = "cbind"
-)
-
-# modelsummary(
-#     list(
-#         "Precarity"= list(m0, m0b), 
-#         "Unaffordability"= list(m1, m2),
-#         "Insecurity"= list(m3, m4), 
-#         "Low quality"= list(m5, m6)), stars = TRUE, 
-#     coef_map = COEF_MAP,
-#     gof_map = c("nobs"), 
-#     add_rows = new_rows,
-#     shape = "cbind", 
-#     fmt = 2,
-#     title = "Models explaining housing precarity and its facets",
-#     output = "typst"
-# ) |> save_tt(output = "paper/tabs/all_models_2020.typ", overwrite = TRUE)
-
-```
-
-## 2023
-```{r}
-
-m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile +
-    r_dwelling_type + r_econ_status +  # urbanisation 
-    country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-m0b <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile + # urbanisation + 
-    r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-
-m1 <- glm(dim_affordability ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile +
-    r_dwelling_type + r_econ_status +  # urbanisation 
-    country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-
-m2 <- glm(dim_affordability ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile + # urbanisation + 
-    r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-m3 <- glm(dim_insecurity ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile +
-     # urbanisation 
-    r_dwelling_type + r_econ_status + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-
-m4 <- glm(dim_insecurity ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile + # urbanisation + 
-    r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-m5 <- glm(dim_quality ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile + # urbanisation 
-    r_dwelling_type + r_econ_status + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
-
-
-m6 <- glm(dim_quality ~ tenure_status + hh_type + 
-    hh_age + income_disposable_eqi_quantile + # urbanisation + 
-    r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
-    family = binomial(link = "logit"),
-    data = hh_2023)
+    data = hh_2019)
 
 # m1b <- glmer(dim_affordability ~ tenure_status + (1 + tenure_status | country), 
 #             family = binomial(link = "logit"),
@@ -436,30 +297,28 @@ COEF_MAP <- c(
     )
 
 new_rows <- tribble(
-    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
-    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
-    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
-    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
-    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
-    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
-    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
-    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
-    "Country FE", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
-    "Pseudo-R2", r2(m0), r2(m0b), r2(m1), r2(m2), r2(m3), 
-                r2(m4), r2(m5), r2(m6)
+    ~name, ~x1, ~x2, ~x3, ~x4, 
+    "Age (ref. 26-64)", "", "", "", "", 
+    "Household head economic status (ref. employed)", "", "", "", "", 
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", 
+    "Household type (ref. adults without children)", "", "", "", "", 
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", 
+    "Dwelling type (ref. detached house)", "", "", "", "", 
+    "Country FE", "Yes", "Yes", "Yes", "Yes", 
+    "Pseudo-R2", r2(m0_2019), r2(m1_2019), r2(m2_2019), r2(m3_2019)
 )
 
 attr(new_rows, "position") <- c(
-    1, 6, 11, 20, 27, 36, 41, 
+    1, 6, 11, 20, 27, 41, 
     length(COEF_MAP) * 2 + nrow(new_rows) - 1,
     length(COEF_MAP) * 2 + nrow(new_rows))
 
 modelsummary(
     list(
-         "Precarity"= list(m0, m0b), 
-        "Unaffordability"= list(m1, m2),
-        "Insecurity"= list(m3, m4), 
-        "Low quality"= list(m5, m6)), stars = TRUE, 
+         "Precarity"= list(m0_2019), 
+        "Unaffordability"= list(m1_2019),
+        "Insecurity"= list(m2_2019), 
+        "Low quality"= list(m3_2019)), stars = TRUE, 
     coef_rename = COEF_MAP,
     gof_map = c("nobs"), 
     add_rows = new_rows,
@@ -519,9 +378,11 @@ ggsave("paper/figs/renovation.png", width = 7)
 
 ```
 
+
 ## Countries run separately
 
 ### CZ
+
 ```{r}
 FORMULA0 <- housing_precarity_binary ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + r_urbanisation + 
@@ -664,7 +525,9 @@ modelsummary(
 
 ```
 
+
 ### BE
+
 ```{r}
 be_hh_2023 <- hh_2023 |> filter(country == "BE")
 
@@ -740,7 +603,9 @@ modelsummary(
 
 ```
 
+
 ### DE
+
 ```{r}
 de_hh_2023 <- hh_2023 |> filter(country == "DE")
 
@@ -816,7 +681,9 @@ modelsummary(
 
 ```
 
+
 ### EE
+
 ```{r}
 ee_hh_2023 <- hh_2023 |> filter(country == "EE")
 
@@ -892,7 +759,9 @@ modelsummary(
 
 ```
 
+
 ### FI
+
 ```{r}
 fi_hh_2023 <- hh_2023 |> filter(country == "FI")
 
@@ -968,7 +837,9 @@ modelsummary(
 
 ```
 
+
 ### IT
+
 ```{r}
 it_hh_2023 <- hh_2023 |> filter(country == "IT")
 
@@ -1044,7 +915,9 @@ modelsummary(
 
 ```
 
+
 ### NL
+
 ```{r}
 FORMULA0b <- housing_precarity_binary ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + 
@@ -1160,7 +1033,9 @@ modelsummary(
 
 ```
 
+
 ### RO
+
 ```{r}
 ro_hh_2023 <- hh_2023 |> filter(country == "RO")
 
@@ -1242,7 +1117,9 @@ modelsummary(
 
 ```
 
+
 ### Interaction tenure status x renovated
+
 ```{r}
 
 m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
@@ -1429,413 +1306,1112 @@ modelsummary(
 
 ```
 
-## Comparison of predicted probabilities
+
+## 2023
 
 ```{r}
-country_precarity_2020 <- ggeffect(m0_2020, term = "country")
-country_precarity_2023 <- ggeffect(m0, term = "country")
 
-bind_rows(
-    country_precarity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    country_precarity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_dwelling_type + r_econ_status +  # urbanisation 
+    country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
-```
+m0b <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
 
-```{r}
-tenure_precarity_2020 <- ggeffect(m0_2020, term = "tenure_status")
-tenure_precarity_2023 <- ggeffect(m0, term = "tenure_status")
-
-bind_rows(
-    tenure_precarity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    tenure_precarity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-
-```
-
-```{r}
-hh_type_precarity_2020 <- ggeffect(m0_2020, term = "hh_type")
-hh_type_precarity_2023 <- ggeffect(m0, term = "hh_type")
-
-bind_rows(
-    hh_type_precarity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    hh_type_precarity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-
-```
-
-```{r}
-income_precarity_2020 <- ggeffect(m0_2020, term = "income_disposable_eqi_quantile")
-income_precarity_2023 <- ggeffect(m0, term = "income_disposable_eqi_quantile")
-
-bind_rows(
-    income_precarity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    income_precarity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-```
-
-```{r}
-dwelling_precarity_2020 <- ggeffect(m0_2020, term = "r_dwelling_type")
-dwelling_precarity_2023 <- ggeffect(m0, term = "r_dwelling_type")
-
-bind_rows(
-    dwelling_precarity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    dwelling_precarity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-
-ggsave("paper/figs/change_20_23/dwelling.png", width = 8, height = 5)
-```
-
-### Affordability
-
-```{r}
-country_affordability_2020 <- ggeffect(m1_2020, term = "country")
-country_affordability_2023 <- ggeffect(m1, term = "country")
-
-bind_rows(
-    country_affordability_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    country_affordability_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-
-```
+m1 <- glm(dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_dwelling_type + r_econ_status +  # urbanisation 
+    country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
 
-```{r}
-tenure_affordability_2020 <- ggeffect(m1_2020, term = "tenure_status")
-tenure_affordability_2023 <- ggeffect(m1, term = "tenure_status")
+m2 <- glm(dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
-bind_rows(
-    tenure_affordability_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    tenure_affordability_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+m3 <- glm(dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+     # urbanisation 
+    r_dwelling_type + r_econ_status + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
-```
 
-```{r}
-hh_type_affordability_2020 <- ggeffect(m1_2020, term = "hh_type")
-hh_type_affordability_2023 <- ggeffect(m1, term = "hh_type")
+m4 <- glm(dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
 
-bind_rows(
-    hh_type_affordability_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    hh_type_affordability_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+m5 <- glm(dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation 
+    r_dwelling_type + r_econ_status + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+
+m6 <- glm(dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+# m1b <- glmer(dim_affordability ~ tenure_status + (1 + tenure_status | country), 
+#             family = binomial(link = "logit"),
+#             data = hh_2023)
+
+r2 <- function(x){
+    as.character(sprintf("%.2f", pscl::pR2(x)["McFadden"]))
+}
+
+COEF_MAP <- c(
+        "hh_ageBelow 25" = "Below 25",
+        "hh_ageAbove 65" = "Above 65",
+        "r_econ_statusRetired" = "Retired",
+        "r_econ_statusOther" = "Other",
+        "tenure_statusOwner with outstanding mortgage" = "Owner with mortgage",
+        "tenure_statusTenant, rent at market price" = "Tenant, market rent",
+        "tenure_statusTenant, rent at reduced price" = "Tenant, reduced rent",
+        "tenure_statusTenant, rent free" = "Tenant, rent free",
+        "hh_typeAdults with children" = "Adults with children",
+        "hh_typeLone parent with children" = "Lone parent with children",
+        "hh_typeLone adult" = "Lone adult",
+        "income_disposable_eqi_quantile2nd quantile" = "2nd quantile",
+        "income_disposable_eqi_quantile3rd quantile" = "3rd quantile",
+        "income_disposable_eqi_quantile4th quantile" = "4th quantile",
+        "income_disposable_eqi_quantile5th quantile (highest)" = "5th quantile (highest)",
+        "r_dwelling_typeSemi-detached or terraced house" = "Semi-detached house",
+        "r_dwelling_typeAppartment" = "Appartment/flat",
+        # "r_heating_systemCentral heating system" = "Central heating system",
+        # "r_heating_systemDistrict heating network/teleheating" = "District heating network/teleheating", 
+        # "r_heating_systemOther" = "Other heating system",
+        "r_renovatedYes" = "Renovated in the past 5 years",
+        "r_renovatedDon't know" = "Don't know",
+        "(Intercept)"= "Intercept"
+    )
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Country FE", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
+    "Pseudo-R2", r2(m0), r2(m0b), r2(m1), r2(m2), r2(m3), 
+                r2(m4), r2(m5), r2(m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 
+    length(COEF_MAP) * 2 + nrow(new_rows) - 1,
+    length(COEF_MAP) * 2 + nrow(new_rows))
+
+modelsummary(
+    list(
+         "Precarity"= list(m0, m0b), 
+        "Unaffordability"= list(m1, m2),
+        "Insecurity"= list(m3, m4), 
+        "Low quality"= list(m5, m6)), stars = TRUE, 
+    coef_rename = COEF_MAP,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(m0, m0b), 
+        "Unaffordability"= list(m1, m2),
+        "Insecurity"= list(m3, m4), 
+        "Low quality"= list(m5, m6)), stars = TRUE, 
+    coef_map = COEF_MAP,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Models explaining housing precarity and its facets",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/all_models.typ", overwrite = TRUE)
 
 ```
 
 ```{r}
-income_affordability_2020 <- ggeffect(m1_2020, term = "income_disposable_eqi_quantile")
-income_affordability_2023 <- ggeffect(m1, term = "income_disposable_eqi_quantile")
+library(patchwork)
 
-bind_rows(
-    income_affordability_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    income_affordability_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+c1 <- ggeffect(m1, terms = "hh_type") |> plot() + 
+    labs(x = "", y= "Predicted probability", 
+    title = "Unaffordability") + 
+    coord_flip()
+
+c2 <- ggeffect(m5, terms = "hh_type") |> plot() + 
+    labs(x = "", y= "Predicted probability", 
+    title = "Low quality") + 
+    coord_flip()
+
+c1 + c2
+
+ggsave("paper/figs/hh_type.png", width = 7)
 ```
 
 ```{r}
-dwelling_affordability_2020 <- ggeffect(m1_2020, term = "r_dwelling_type")
-dwelling_affordability_2023 <- ggeffect(m1, term = "r_dwelling_type")
+c1 <- ggeffect(m2, terms = "r_renovated") |> plot() + 
+    labs(x = "", y= "Predicted probability", 
+    title = "Unaffordability") + 
+    scale_y_continuous(breaks = c(0.0375, 0.04, 0.0425, 0.045), labels = scales::percent) + 
+    coord_flip()
 
-bind_rows(
-    dwelling_affordability_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    dwelling_affordability_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+c2 <- ggeffect(m6, terms = "r_renovated") |> plot() + 
+    labs(x = "", y= "Predicted probability", 
+    title = "Low quality") + 
+    coord_flip()
 
-ggsave("paper/figs/change_20_23/dwelling_affordability.png", width = 8, height = 5)
+c1 + c2
+
+ggsave("paper/figs/renovation.png", width = 7)
+
 ```
 
-### Insecurity
+
+## Countries run separately
+
+### CZ
 
 ```{r}
-country_insecurity_2020 <- ggeffect(m2_2020, term = "country")
-country_insecurity_2023 <- ggeffect(m3, term = "country")
+FORMULA0 <- housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    r_dwelling_type + r_econ_status
 
-bind_rows(
-    country_insecurity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    country_insecurity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+FORMULA02 <- housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    # r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA1 <- dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    r_dwelling_type + r_econ_status
+
+FORMULA2 <- dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    # r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA3 <- dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    r_dwelling_type + r_econ_status
+
+FORMULA4 <- dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    # r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA5 <- dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    r_dwelling_type + r_econ_status
+
+FORMULA6 <- dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + r_urbanisation + 
+    # r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+cz_hh_2023 <- hh_2023 |> filter(country == "CZ")
+
+cz_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+cz_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = cz_hh_2023)
+
+COEF_MAP2 <- c(
+        "hh_ageBelow 25" = "Below 25",
+        "hh_ageAbove 65" = "Above 65",
+        "r_econ_statusRetired" = "Retired",
+        "r_econ_statusOther" = "Other",
+        "tenure_statusOwner with outstanding mortgage" = "Owner with mortgage",
+        "tenure_statusTenant, rent at market price" = "Tenant, market rent",
+        "tenure_statusTenant, rent at reduced price" = "Tenant, reduced rent",
+        "tenure_statusTenant, rent free" = "Tenant, rent free",
+        "hh_typeAdults with children" = "Adults with children",
+        "hh_typeLone parent with children" = "Lone parent with children",
+        "hh_typeLone adult" = "Lone adult",
+        "income_disposable_eqi_quantile2nd quantile" = "2nd quantile",
+        "income_disposable_eqi_quantile3rd quantile" = "3rd quantile",
+        "income_disposable_eqi_quantile4th quantile" = "4th quantile",
+        "income_disposable_eqi_quantile5th quantile (highest)" = "5th quantile (highest)",
+        "r_dwelling_typeSemi-detached or terraced house" = "Semi-detached house",
+        "r_dwelling_typeAppartment" = "Appartment/flat",
+        "r_urbanisationRural areas"="Rural areas",
+        # "r_heating_systemCentral heating system" = "Central heating system",
+        # "r_heating_systemDistrict heating network/teleheating" = "District heating network/teleheating", 
+        # "r_heating_systemOther" = "Other heating system",
+        "r_renovatedYes" = "Renovated in the past 5 years",
+        "r_renovatedDon't know" = "Don't know",
+        "(Intercept)"= "Intercept"
+)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(cz_m01), r2(cz_m02), r2(cz_m1), r2(cz_m2), r2(cz_m3), 
+                r2(cz_m4), r2(cz_m5), r2(cz_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(cz_m01, cz_m02), 
+        "Unaffordability"= list(cz_m1, cz_m2),
+        "Insecurity"= list(cz_m3, cz_m4), 
+        "Low quality"= list(cz_m5, cz_m6)), stars = TRUE, 
+    coef_rename = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(cz_m01, cz_m02), 
+        "Unaffordability"= list(cz_m1, cz_m2),
+        "Insecurity"= list(cz_m3, cz_m4), 
+        "Low quality"= list(cz_m5, cz_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Czechia",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/cz_models.typ", overwrite = TRUE)
 
 ```
+
+
+### BE
 
 ```{r}
-tenure_insecurity_2020 <- ggeffect(m2_2020, term = "tenure_status")
-tenure_insecurity_2023 <- ggeffect(m3, term = "tenure_status")
+be_hh_2023 <- hh_2023 |> filter(country == "BE")
 
-bind_rows(
-    tenure_insecurity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    tenure_insecurity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+be_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+be_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = be_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(be_m01), r2(be_m02), r2(be_m1), r2(be_m2), r2(be_m3), 
+                r2(be_m4), r2(be_m5), r2(be_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(be_m01, be_m02), 
+        "Unaffordability"= list(be_m1, be_m2),
+        "Insecurity"= list(be_m3, be_m4), 
+        "Low quality"= list(be_m5, be_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(be_m01, be_m02), 
+        "Unaffordability"= list(be_m1, be_m2),
+        "Insecurity"= list(be_m3, be_m4), 
+        "Low quality"= list(be_m5, be_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Belgium",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/be_models.typ", overwrite = TRUE)
 
 ```
+
+
+### DE
 
 ```{r}
-hh_type_insecurity_2020 <- ggeffect(m2_2020, term = "hh_type")
-hh_type_insecurity_2023 <- ggeffect(m3, term = "hh_type")
+de_hh_2023 <- hh_2023 |> filter(country == "DE")
 
-bind_rows(
-    hh_type_insecurity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    hh_type_insecurity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+de_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+de_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = de_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(de_m01), r2(de_m02), r2(de_m1), r2(de_m2), r2(de_m3), 
+                r2(de_m4), r2(de_m5), r2(de_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(de_m01, de_m02), 
+        "Unaffordability"= list(de_m1, de_m2),
+        "Insecurity"= list(de_m3, de_m4), 
+        "Low quality"= list(de_m5, de_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(de_m01, de_m02), 
+        "Unaffordability"= list(de_m1, de_m2),
+        "Insecurity"= list(de_m3, de_m4), 
+        "Low quality"= list(de_m5, de_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Germany",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/de_models.typ", overwrite = TRUE)
 
 ```
+
+
+### EE
 
 ```{r}
-income_insecurity_2020 <- ggeffect(m2_2020, term = "income_disposable_eqi_quantile")
-income_insecurity_2023 <- ggeffect(m3, term = "income_disposable_eqi_quantile")
+ee_hh_2023 <- hh_2023 |> filter(country == "EE")
 
-bind_rows(
-    income_insecurity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    income_insecurity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+ee_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+ee_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = ee_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(ee_m01), r2(ee_m02), r2(ee_m1), r2(ee_m2), r2(ee_m3), 
+                r2(ee_m4), r2(ee_m5), r2(ee_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows) - 2)
+
+
+modelsummary(
+    list(
+        "Precarity"= list(ee_m01, ee_m02), 
+        "Unaffordability"= list(ee_m1, ee_m2),
+        "Insecurity"= list(ee_m3, ee_m4), 
+        "Low quality"= list(ee_m5, ee_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(ee_m01, ee_m02), 
+        "Unaffordability"= list(ee_m1, ee_m2),
+        "Insecurity"= list(ee_m3, ee_m4), 
+        "Low quality"= list(ee_m5, ee_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Estonia",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/ee_models.typ", overwrite = TRUE)
+
 ```
+
+
+### FI
 
 ```{r}
-dwelling_insecurity_2020 <- ggeffect(m2_2020, term = "r_dwelling_type")
-dwelling_insecurity_2023 <- ggeffect(m3, term = "r_dwelling_type")
+fi_hh_2023 <- hh_2023 |> filter(country == "FI")
 
-bind_rows(
-    dwelling_insecurity_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    dwelling_insecurity_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+fi_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
 
-ggsave("paper/figs/change_20_23/dwelling_insecurity.png", width = 8, height = 5)
+fi_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+fi_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = fi_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(fi_m01), r2(fi_m02), r2(fi_m1), r2(fi_m2), r2(fi_m3), 
+                r2(fi_m4), r2(fi_m5), r2(fi_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows) - 2)
+
+
+modelsummary(
+    list(
+        "Precarity"= list(fi_m01, fi_m02), 
+        "Unaffordability"= list(fi_m1, fi_m2),
+        "Insecurity"= list(fi_m3, fi_m4), 
+        "Low quality"= list(fi_m5, fi_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(fi_m01, fi_m02), 
+        "Unaffordability"= list(fi_m1, fi_m2),
+        "Insecurity"= list(fi_m3, fi_m4), 
+        "Low quality"= list(fi_m5, fi_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Finland",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/fi_models.typ", overwrite = TRUE)
+
 ```
 
-### Quality
+
+### IT
 
 ```{r}
-country_quality_2020 <- ggeffect(m3_2020, term = "country")
-country_quality_2023 <- ggeffect(m5, term = "country")
+it_hh_2023 <- hh_2023 |> filter(country == "IT")
 
-bind_rows(
-    country_quality_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    country_quality_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+it_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+it_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = it_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(it_m01), r2(it_m02), r2(it_m1), r2(it_m2), r2(it_m3), 
+                r2(it_m4), r2(it_m5), r2(it_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(it_m01, it_m02), 
+        "Unaffordability"= list(it_m1, it_m2),
+        "Insecurity"= list(it_m3, it_m4), 
+        "Low quality"= list(it_m5, it_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(it_m01, it_m02), 
+        "Unaffordability"= list(it_m1, it_m2),
+        "Insecurity"= list(it_m3, it_m4), 
+        "Low quality"= list(it_m5, it_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Italy",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/it_models.typ", overwrite = TRUE)
 
 ```
+
+
+### NL
 
 ```{r}
-tenure_quality_2020 <- ggeffect(m3_2020, term = "tenure_status")
-tenure_quality_2023 <- ggeffect(m5, term = "tenure_status")
+FORMULA0b <- housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_dwelling_type + r_econ_status
 
-bind_rows(
-    tenure_quality_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    tenure_quality_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+FORMULA02b <- housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA1b <- dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_dwelling_type + r_econ_status
+
+FORMULA2b <- dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA3b <- dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_dwelling_type + r_econ_status
+
+FORMULA4b <- dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+FORMULA5b <- dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_dwelling_type + r_econ_status
+
+FORMULA6b <- dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + 
+    r_heating_system + 
+    r_renovated + 
+    r_dwelling_type + r_econ_status
+
+nl_hh_2023 <- hh_2023 |> filter(country == "NL")
+nl_m01 <- glm(FORMULA0b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m02 <- glm(FORMULA02b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+
+nl_m1 <- glm(FORMULA1b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m2 <- glm(FORMULA2b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m3 <- glm(FORMULA3b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m4 <- glm(FORMULA4b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m5 <- glm(FORMULA5b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+nl_m6 <- glm(FORMULA6b, family = binomial(link = "logit"), 
+    data = nl_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(nl_m01), r2(nl_m02), r2(nl_m1), r2(nl_m2), r2(nl_m3), 
+                r2(nl_m4), r2(nl_m5), r2(nl_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 
+    length(COEF_MAP) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(nl_m01, nl_m02), 
+        "Unaffordability"= list(nl_m1, nl_m2),
+        "Insecurity"= list(nl_m3, nl_m4), 
+        "Low quality"= list(nl_m5, nl_m6)), stars = TRUE, 
+    coef_map = COEF_MAP,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(nl_m01, nl_m02), 
+        "Unaffordability"= list(nl_m1, nl_m2),
+        "Insecurity"= list(nl_m3, nl_m4), 
+        "Low quality"= list(nl_m5, nl_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Netherlands",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/nl_models.typ", overwrite = TRUE)
+
 
 ```
+
+
+### RO
 
 ```{r}
-hh_type_quality_2020 <- ggeffect(m3_2020, term = "hh_type")
-hh_type_quality_2023 <- ggeffect(m5, term = "hh_type")
+ro_hh_2023 <- hh_2023 |> filter(country == "RO")
 
-bind_rows(
-    hh_type_quality_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    hh_type_quality_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
-    coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+ro_m01 <- glm(FORMULA0, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m02 <- glm(FORMULA02, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m1 <- glm(FORMULA1, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m2 <- glm(FORMULA2, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m3 <- glm(FORMULA3, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m4 <- glm(FORMULA4, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m5 <- glm(FORMULA5, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+ro_m6 <- glm(FORMULA6, family = binomial(link = "logit"), 
+    data = ro_hh_2023)
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Urbanisation (ref. cities or towns)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Pseudo-R2", r2(ro_m01), r2(ro_m02), r2(ro_m1), r2(ro_m2), r2(ro_m3), 
+                r2(ro_m4), r2(ro_m5), r2(ro_m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 44,
+    length(COEF_MAP2) * 2 + nrow(new_rows))
+
+
+modelsummary(
+    list(
+        "Precarity"= list(ro_m01, ro_m02), 
+        "Unaffordability"= list(ro_m1, ro_m2),
+        "Insecurity"= list(ro_m3, ro_m4), 
+        "Low quality"= list(ro_m5, ro_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+modelsummary(
+    list(
+        "Precarity"= list(ro_m01, ro_m02), 
+        "Unaffordability"= list(ro_m1, ro_m2),
+        "Insecurity"= list(ro_m3, ro_m4), 
+        "Low quality"= list(ro_m5, ro_m6)), stars = TRUE, 
+    coef_map = COEF_MAP2,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Romania",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/ro_models.typ", overwrite = TRUE)
+
+
+# modelsummary(list(ro_m01, ro_m02, 
+#                   ro_m1, ro_m2, ro_m3, ro_m4, ro_m5, ro_m6), 
+#              stars = TRUE, output = "typst") |> 
+#     writeLines("paper/figs/tab_ro.typ")
 
 ```
+
+
+### Interaction tenure status x renovated
 
 ```{r}
-income_quality_2020 <- ggeffect(m3_2020, term = "income_disposable_eqi_quantile")
-income_quality_2023 <- ggeffect(m5, term = "income_disposable_eqi_quantile")
 
-bind_rows(
-    income_quality_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    income_quality_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
+m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_dwelling_type + r_econ_status +  # urbanisation 
+    country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+m0b <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+
+m1 <- glm(dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_dwelling_type + r_econ_status +  # urbanisation 
+    country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+
+m2 <- glm(dim_affordability ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+m3 <- glm(dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+     # urbanisation 
+    r_dwelling_type + r_econ_status + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+
+m4 <- glm(dim_insecurity ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+m5 <- glm(dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation 
+    r_dwelling_type + r_econ_status + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+
+m6 <- glm(dim_quality ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile + # urbanisation + 
+    r_dwelling_type + r_econ_status + #r_heating_system + 
+    tenure_status * r_renovated + country, 
+    family = binomial(link = "logit"),
+    data = hh_2023)
+
+# m1b <- glmer(dim_affordability ~ tenure_status + (1 + tenure_status | country), 
+#             family = binomial(link = "logit"),
+#             data = hh_2023)
+
+r2 <- function(x){
+    as.character(sprintf("%.2f", pscl::pR2(x)["McFadden"]))
+}
+
+COEF_MAP <- c(
+        "hh_ageBelow 25" = "Below 25",
+        "hh_ageAbove 65" = "Above 65",
+        "r_econ_statusRetired" = "Retired",
+        "r_econ_statusOther" = "Other",
+        "tenure_statusOwner with outstanding mortgage" = "Owner with mortgage",
+        "tenure_statusTenant, rent at market price" = "Tenant, market rent",
+        "tenure_statusTenant, rent at reduced price" = "Tenant, reduced rent",
+        "tenure_statusTenant, rent free" = "Tenant, rent free",
+        "hh_typeAdults with children" = "Adults with children",
+        "hh_typeLone parent with children" = "Lone parent with children",
+        "hh_typeLone adult" = "Lone adult",
+        "income_disposable_eqi_quantile2nd quantile" = "2nd quantile",
+        "income_disposable_eqi_quantile3rd quantile" = "3rd quantile",
+        "income_disposable_eqi_quantile4th quantile" = "4th quantile",
+        "income_disposable_eqi_quantile5th quantile (highest)" = "5th quantile (highest)",
+        "r_dwelling_typeSemi-detached or terraced house" = "Semi-detached house",
+        "r_dwelling_typeAppartment" = "Appartment/flat",
+        # "r_heating_systemCentral heating system" = "Central heating system",
+        # "r_heating_systemDistrict heating network/teleheating" = "District heating network/teleheating", 
+        # "r_heating_systemOther" = "Other heating system",
+        "r_renovatedYes" = "Renovated in the past 5 years",
+        "r_renovatedDon't know" = "Don't know",
+        "tenure_statusOwner with outstanding mortgage:r_renovatedYes" = "Owner with mortgage x renovated", 
+        "tenure_statusTenant, rent at market price:r_renovatedYes" = "Tenant, market rent x renovated",
+        "tenure_statusTenant, rent at reduced price:r_renovatedYes" = 
+            "Tenant, reducted rent x renovated",
+        "tenure_statusTenant, rent free:r_renovatedYes" = "Tenant, rent free x renovated",
+        "tenure_statusTenant, rent at market price:r_renovatedDon't know" = "Tenant, market rent x Don't know",
+        "(Intercept)"= "Intercept"
+    )
+
+new_rows <- tribble(
+    ~name, ~x1, ~x2, ~x3, ~x4, ~x5, ~x6, ~x7, ~x8,
+    "Age (ref. 26-64)", "", "", "", "", "", "", "", "",
+    "Household head economic status (ref. employed)", "", "", "", "", "", "", "", "",
+    "Tenure status (ref. owner without mortgage)", "", "", "", "", "", "", "", "",
+    "Household type (ref. adults without children)", "", "", "", "", "", "", "", "",
+    "Houshold equalised income (ref. 1st quantile)", "", "", "", "", "", "", "", "",
+    "Dwelling type (ref. detached house)", "", "", "", "", "", "", "", "",
+    "Renovation in past 5 years (ref. did not renovate)", "", "", "", "", "", "", "", "",
+    "Interaction: Tenure status x renovation", "", "", "", "", "", "", "", "",
+    "Country FE", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes",
+    "Pseudo-R2", r2(m0), r2(m0b), r2(m1), r2(m2), r2(m3), 
+                r2(m4), r2(m5), r2(m6)
+)
+
+attr(new_rows, "position") <- c(
+    1, 6, 11, 20, 27, 36, 41, 46, 
+    length(COEF_MAP) * 2 + nrow(new_rows) - 1,
+    length(COEF_MAP) * 2 + nrow(new_rows))
+
+modelsummary(
+    list(
+         "Precarity"= list(m0, m0b), 
+        "Unaffordability"= list(m1, m2),
+        "Insecurity"= list(m3, m4), 
+        "Low quality"= list(m5, m6)), stars = TRUE, 
+    coef_map = COEF_MAP,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind"
+)
+
+ggeffect(m0b, terms = c("tenure_status", "r_renovated")) |> 
+    plot() + 
     coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
-```
+    labs(y = "Predicted probability of housing precarity", x ="", 
+         colour = "Renovated", title = "") + 
+    theme(legend.position = "bottom")
 
-```{r}
-dwelling_quality_2020 <- ggeffect(m3_2020, term = "r_dwelling_type")
-dwelling_quality_2023 <- ggeffect(m5, term = "r_dwelling_type")
+ggsave("paper/figs/pp_all.png", width = 7)
 
-bind_rows(
-    dwelling_quality_2020 |> as.data.frame() |> 
-    mutate(year = 2020),
-    dwelling_quality_2023 |> as.data.frame() |> 
-    mutate(year = 2023)
-) |> 
-    ggplot(aes(x = x, y = predicted, colour = factor(year))) + 
-    geom_point() +
-    geom_linerange(aes(ymin = conf.low, ymax = conf.high)) +
-    labs(colour = "year", y = "predicted probability", x = "") + 
+ggeffect(m2, terms = c("tenure_status", "r_renovated")) |> 
+    plot() + 
     coord_flip() + 
-    theme_minimal() + 
-    theme(legend.position = "top")
+    labs(y = "Predicted probability of housing unaffordability", x ="", 
+         colour = "Renovated", title = "") + 
+    theme(legend.position = "bottom")
 
-ggsave("paper/figs/change_20_23/dwelling_quality.png", width = 8, height = 5)
+ggsave("paper/figs/pp_affordability.png", width = 7)
+
+ggeffect(m4, terms = c("tenure_status", "r_renovated")) |> 
+    plot() + 
+    coord_flip() + 
+    labs(y = "Predicted probability of housing insecurity", x ="", 
+         colour = "Renovated", title = "") + 
+    theme(legend.position = "bottom")
+
+ggsave("paper/figs/pp_insecurity.png", width = 7)
+
+ggeffect(m6, terms = c("tenure_status", "r_renovated")) |> 
+    plot() + 
+    coord_flip() + 
+    labs(y = "Predicted probability of low housing quality", x ="", 
+         colour = "Renovated", title = "") + 
+    theme(legend.position = "bottom")
+
+ggsave("paper/figs/pp_quality.png", width = 7)
+
+modelsummary(
+    list(
+        "Precarity"= list(m0, m0b), 
+        "Unaffordability"= list(m1, m2),
+        "Insecurity"= list(m3, m4), 
+        "Low quality"= list(m5, m6)), stars = TRUE, 
+    coef_map = COEF_MAP,
+    gof_map = c("nobs"), 
+    add_rows = new_rows,
+    shape = "cbind", 
+    fmt = 2,
+    title = "Models explaining housing precarity and its facets",
+    output = "typst"
+) |> save_tt(output = "paper/tabs/all_models_interaction.typ", overwrite = TRUE)
+
 ```
-
