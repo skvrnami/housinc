@@ -1,5 +1,7 @@
 *.pdf
 *.docx
+*.svg
+*.html
 
 data/silc/
 data/silc_long/
