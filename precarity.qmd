@@ -1839,3 +1839,36 @@ bind_rows(
 ggsave("paper/figs/change_20_23/dwelling_quality.png", width = 8, height = 5)
 ```
 
+# Depth of precarity
+```{r}
+library(brms)
+
+hh_2023_depth <- hh_2023 |> 
+    mutate(housing_precarity_sum = factor(housing_precarity_sum, levels = 0:3, labels = c("Not precarious", "One dimension", "Two dimensions", "Three dimensions"), ordered = TRUE))
+
+# m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+#     hh_age + income_disposable_eqi_quantile +
+#     r_dwelling_type + r_econ_status +  # urbanisation 
+#     country, 
+#     family = binomial(link = "logit"),
+#     data = hh_2023)
+
+# m0b <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
+#     hh_age + income_disposable_eqi_quantile + # urbanisation + 
+#     r_dwelling_type + r_econ_status + #r_heating_system + 
+#     tenure_status * r_renovated + country, 
+#     family = binomial(link = "logit"),
+#     data = hh_2023)
+
+fit0 <- brm(
+    housing_precarity_sum ~ tenure_status + hh_type + 
+    hh_age + income_disposable_eqi_quantile +
+    r_dwelling_type + r_econ_status +  # urbanisation 
+    (1 | country), 
+    family = cumulative("probit"), 
+    data = hh_2023_depth
+)
+
+marginal_effects(fit0)
+saveRDS(fit0, "paper/models/precarity_depth_m0.rds")
+```

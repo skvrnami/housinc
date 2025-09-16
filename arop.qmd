@@ -333,6 +333,30 @@ national_medians <- hh_r_silc_2023_ppp %>%
     national_poverty_boundary = median_income * 0.5
   )
 
+national_medians_original <- hh_r_silc_2023_ppp %>% 
+  group_by(country) %>% 
+  summarise(median_income = wtd.quantile(income_disposable_eqi, 
+                                         hh_cross_weight, 0.5), 
+            .groups = "drop") %>% 
+  mutate(
+    national_70_boundary = median_income * 0.7,
+    national_arop_boundary = median_income * 0.6, 
+    national_poverty_boundary = median_income * 0.5
+  )
+
+eur_to_czk <- c(24.469,	24.439,	25.008,	24.437,	24.748,	24.719,	24.577,	24.568,	24.573,	24.532,	24.367,	24.269) |> mean()
+
+national_medians_original |> 
+  # filter(country == "Česko") |> 
+  mutate(
+    national_arop_boundary_czk = round(national_arop_boundary / 12 * eur_to_czk, -2)
+  ) |> 
+  select(country, median_income, national_arop_boundary, national_arop_boundary_czk) |> knitr::kable()
+
+national_medians |> 
+  filter(country == "Česko") |> 
+  pull(national_arop_boundary)
+
 hh_r_silc_2023_national_arop <- full_join(hh_r_silc_2023_arop, national_medians, 
                                           by = "country") %>% 
   mutate(
@@ -345,7 +369,8 @@ hh_r_silc_2023_national_arop <- full_join(hh_r_silc_2023_arop, national_medians,
 eu_national_arop <- hh_r_silc_2023_national_arop %>% 
   group_by(r_country) %>% 
   summarise(pct_under_national_arop = wtd.mean(
-    under_national_arop, hh_cross_weight, na.rm = TRUE) * 100) %>% 
+    under_national_arop, hh_cross_weight, na.rm = TRUE) * 100
+  ) %>% 
   left_join(eu_arop_2023b, ., by = "r_country")
 
 hh_r_silc_2023_national_arop %>% 
@@ -362,8 +387,12 @@ eu_national_arop %>%
 ```{r}
 eu_national_arop <- hh_r_silc_2023_national_arop %>% 
   group_by(country) %>% 
-  summarise(pct_under_national_arop = wtd.mean(
-    under_national_arop, hh_cross_weight, na.rm = TRUE) * 100) %>% 
+  summarise(
+    pct_under_national_arop = wtd.mean(
+      under_national_arop, hh_cross_weight, na.rm = TRUE) * 100, 
+    pct_under_national_poverty = wtd.mean(
+      under_national_poverty, hh_cross_weight, na.rm = TRUE) * 100
+  ) %>% 
   left_join(eu_arop_2023, ., by = "country")
 
 bind_rows(
@@ -1844,8 +1873,13 @@ save_plot(last_plot(), "figs/arop/gini_income_property.svg")
 ## Finální ukazatel po review
 ```{r}
 paq_poverty_indicator <- hh_r_silc_2023_arop |> 
+  left_join(national_medians, by = "country") |> 
   mutate(
-    material_social_deprivation = sum_deprived_items >= 5
+    under_national_arop = income_disposable_eqi_ppp < national_arop_boundary,
+    material_social_deprivation = sum_deprived_items >= 5, 
+    arope = under_national_arop | 
+           low_work_intensity == 1 | 
+           severe_material_social_deprivation == 1
   ) |> 
   group_by(country) |>
   summarise(
@@ -2089,4 +2123,83 @@ left_join(rr_silc_2023, ppp_adjusted, by = "country") |>
   correlate() |> 
   as.data.frame()
 
+```
+
+
+```{r}
+paq_poverty_indicator2 <- hh_r_silc_2023_arop |> 
+  left_join(national_medians, by = "country") |> 
+  mutate(
+    under_national_arop = income_disposable_eqi_ppp < national_arop_boundary,
+    material_social_deprivation = sum_deprived_items >= 5, 
+    arope = under_national_arop | 
+           low_work_intensity == 1 | 
+           severe_material_social_deprivation == 1
+  ) |> 
+  group_by(country) |>
+  summarise(
+    pct_severely_deprived = wtd.mean(
+      severe_material_social_deprivation == 1, hh_cross_weight) * 100,
+    pct_low_work_intensity = wtd.mean(low_work_intensity == 1, hh_cross_weight) * 100,
+    pct_arope = wtd.mean(arope, hh_cross_weight) * 100,
+    pct_deprived = wtd.mean(material_social_deprivation, hh_cross_weight, 
+                            na.rm = TRUE) * 100,
+    pct_under_eu_poverty = wtd.mean(under_eu_poverty, hh_cross_weight) * 100,
+    pct_paq_poverty = wtd.mean(under_eu_poverty | material_social_deprivation, 
+                           hh_cross_weight) * 100
+  )
+
+# whole_eu
+list(
+  eu_national_arop,
+  paq_poverty_indicator2 |> select(-pct_under_eu_poverty),
+  gini_2023 |> 
+    left_join(gini_property, by = "country") |> 
+    rename(gini_income = gini) |> 
+    select(-gini_neeqi),
+  indi_other_indicators |> 
+    select(country, low_life_satisfaction, bad_or_very_bad_health) |> 
+    mutate(across(c(low_life_satisfaction, bad_or_very_bad_health), \(x) x * 100))
+) |> 
+  purrr::reduce(full_join) |> 
+  rename(pct_under_eu_arop = pct_under_arop) |> 
+  writexl::write_xlsx("arop.xlsx")
+
+
+```
+
+```{r}
+# https://ec.europa.eu/eurostat/en/web/products-eurostat-news/w/ddn-20250808-1
+healthy_years <- tribble(
+  ~country, ~total, ~men, ~women,
+  "Belgie", 64.0,	64.4,	63.5,
+  "Bulharsko", 68.6,	66.3,	71.0,
+  "Česko", 62.0,	61.5,	62.6,
+  "Dánsko", 56.3,	57.0,	55.4,
+  "Německo", 62.5,	62.1,	63.0,
+  "Estonsko", 58.1,	56.5,	59.6,
+  "Irsko", 66.1,	66.0,	66.2,
+  "Řecko", 66.6,	66.0,	67.3,
+  "Španělsko", 62.1,	62.4,	61.8,
+  "Francie", 63.8,	63.5,	64.1,
+  "Chorvatsko", 61.4,	60.4,	62.4,
+  "Itálie", 69.1,	68.5,	69.6,
+  "Kypr", 65.0,	64.4,	65.7,
+  "Lotyšsko", 52.7,	51.2,	54.3,
+  "Litva", 60.9,	58.9,	62.9,
+  "Maďarsko", 63.6,	62.5,	64.6,
+  "Malta", 71.4,	71.7,	71.1,
+  "Nizozemí", 59.0,	60.6,	57.5,
+  "Rakousko", 60.4,	60.3,	60.5,
+  "Polsko", 63.1,	61.7,	64.4,
+  "Portugalsko", 59.6,	61.0,	58.3,
+  "Rumunsko", 59.2,	59.4,	58.9,
+  "Slovinsko", 66.6,	64.6,	68.8,
+  "Slovensko", 57.5,	56.8,	58.2,
+  "Finsko", 57.1,	58.1,	55.9,
+  "Švédsko", 66.2,	67.2,	65.0
+)
+
+full_join(eu_national_arop, healthy_years, by = "country") |> 
+  correlate() |> View()
 ```
