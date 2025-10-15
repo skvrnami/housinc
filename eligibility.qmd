@@ -33,7 +33,12 @@ r_silc_2023 <- r_silc_2023 %>%
   mutate(country = as.character(country)) |> 
   mutate(work_intensity = if_else(
     work_intensity == 99, NA_real_, work_intensity
-  ))
+  )) |> 
+  mutate(
+    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No"), 
+    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
+    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))
+    )
 
 if_na <- function(x, replace = 0){
   if_else(is.na(x), replace, x)
@@ -43,8 +48,8 @@ calculate_dimensions <- function(df){
   df %>% 
     mutate(
       dim_affordability = housing_overburden,
-      dim_insecurity = arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more") |
-          arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+      dim_insecurity = arrears_mortgage_rent == 1 |
+          arrears_utility == 1,
       dim_quality = case_when(
         is.na(overcrowded_eurostat) ~ NA,
         TRUE ~ (overcrowded_eurostat |
@@ -189,7 +194,8 @@ eligibility_cz_2023 <- cz_2023 %>%
       TRUE ~ 0
     ), 
     eligible = eligibility_allowance_housing > 0
-  ) %>% calculate_dimensions() %>% 
+  ) %>% 
+  calculate_dimensions() %>% 
   group_by(hh_id) %>% 
   mutate(
     mean_work_intensity = mean(work_intensity, na.rm = TRUE),
@@ -245,7 +251,14 @@ m_out <- matchit(takeup_allowance_housing ~ n_persons +
         data = eligibility_cz_2023 %>% 
           filter(!is.na(region)))
 
+
 summary(m_out)
+cz_m_summary <- summary(m_out)
+cz_m_summary$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/cz_matching_data.html")
 plot(summary(m_out))
 
 m_data <- match_data(m_out) %>% 
@@ -259,29 +272,68 @@ table(m_data$eligible)
 
 eligibility_cz_2023 |>
   filter(!is.na(region)) |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility,
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Whole population")
+  knitr::kable(
+    digits = 1, caption = "Whole population", 
+    col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
+
+eligibility_cz_2023 |>
+  filter(!is.na(region)) |> 
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(
+    digits = 1, caption = "Whole population", format = "html", 
+      col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    )) |> 
+  writeLines("paper/figs/cz_precarity_population.html")
 
 m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Matched households")
+  knitr::kable(digits = 1, caption = "Matched households", 
+    col.names = c(
+      "Group", 
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
+
+m_data |> 
+  group_by(takeup_allowance_housing) |> 
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(digits = 1, caption = "Matched households", format = "html", col.names = c(
+      "Group",
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    )) |> 
+  writeLines("paper/figs/cz_precarity_matched.html")
 
 ## Matched data
 cz_affordability <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
@@ -297,14 +349,12 @@ cz_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_all
 cz_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> 
-      mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+    data = m_data)
 
 cz_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> 
-      mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+    data = m_data)
 
 cz_quality <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
@@ -319,7 +369,7 @@ cz_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibil
 cz_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+    data = m_data)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
@@ -346,11 +396,33 @@ modelsummary::modelsummary(
   fmt = 2,
   coef_rename = c(
     "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
+    "eligibility_allowance_housing" = "Amount of benefits eligible for",
+    "income_disposable_wo_housing" = "Disposable income without benefits"
   ), 
   gof_map = "nobs", 
   add_rows = pr2
+)
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = cz_affordability, 
+    "Insecurity" = cz_insecurity, 
+    "Poor quality" = cz_quality, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
+    "Arrears on utilities" = cz_arrears_utility, 
+    "Overcrowded" = cz_overcrowded, 
+    "Unable to keep warm" = cz_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "Amount of benefits eligible for",
+    "income_disposable_wo_housing" = "Disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2, 
+  output = "paper/figs/cz_matching_summary.html"
 )
 ```
 
@@ -365,7 +437,7 @@ eligibility_cz_2023_long <- eligibility_cz_2023 |>
   left_join(cz_q2022, by = "hh_id") |> 
   filter(income_disposable_eqi_quantile == income_disposable_eqi_quantile_before)
 
-m_out <- matchit(takeup_allowance_housing ~ n_persons + 
+m_out_robust <- matchit(takeup_allowance_housing ~ n_persons + 
                    income_disposable_wo_housing + 
                    eligibility_allowance_housing + 
                    region + tenure_status + 
@@ -379,21 +451,22 @@ m_out <- matchit(takeup_allowance_housing ~ n_persons +
         data = eligibility_cz_2023_long %>% 
           filter(!is.na(region)))
 
-summary(m_out)
-plot(summary(m_out))
+cz_m_summary_robust <- summary(m_out_robust)
+cz_m_summary_robust$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/cz_matching_data_robust.html")
+plot(summary(m_out_robust), var.order = "unmatched")
 
-m_data <- match_data(m_out) %>% 
+m_data_robust <- match_data(m_out_robust) %>% 
   mutate(takeup_allowance_housing = factor(takeup_allowance_housing, 
                                                levels = c(FALSE, TRUE), 
                                                labels = c("No, not taking benefits",
                                                           "Yes, taking benefits")), 
          eligibility_allowance_housing = eligibility_allowance_housing / 10)
 
-m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
+m_data_robust |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
@@ -403,63 +476,61 @@ m_data |>
   knitr::kable(digits = 1)
 
 ## Matched data
-cz_affordability <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_affordability2 <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data)
+    data = m_data_robust)
 
-cz_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data)
+    data = m_data_robust)
 
-cz_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> 
-      mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+    data = m_data_robust)
 
-cz_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> 
-      mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+    data = m_data_robust)
 
-cz_quality <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_quality2 <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data)
+    data = m_data_robust)
 
-cz_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data)
+    data = m_data_robust)
 
-cz_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
+cz_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
-    data = m_data |> mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+    data = m_data_robust)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
-  x1 = pscl::pR2(cz_affordability)["McFadden"], 
-  x2 = pscl::pR2(cz_insecurity)["McFadden"],
-  x3 = pscl::pR2(cz_quality)["McFadden"],
-  x4 = pscl::pR2(cz_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(cz_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(cz_overcrowded)["McFadden"],
-  x7 = pscl::pR2(cz_warm)["McFadden"]
+  x1 = pscl::pR2(cz_affordability2)["McFadden"], 
+  x2 = pscl::pR2(cz_insecurity2)["McFadden"],
+  x3 = pscl::pR2(cz_quality2)["McFadden"],
+  x4 = pscl::pR2(cz_arrears_mortgage_rent2)["McFadden"],
+  x5 = pscl::pR2(cz_arrears_utility2)["McFadden"],
+  x6 = pscl::pR2(cz_overcrowded2)["McFadden"],
+  x7 = pscl::pR2(cz_warm2)["McFadden"]
 )
 
 modelsummary::modelsummary(
   list(
-    "Unaffordability" = cz_affordability, 
-    "Insecurity" = cz_insecurity, 
-    "Poor quality" = cz_quality, 
-    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
-    "Arrears on utilities" = cz_arrears_utility, 
-    "Overcrowded" = cz_overcrowded, 
-    "Unable to keep warm" = cz_warm
+    "Unaffordability" = cz_affordability2, 
+    "Insecurity" = cz_insecurity2, 
+    "Poor quality" = cz_quality2, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent2, 
+    "Arrears on utilities" = cz_arrears_utility2, 
+    "Overcrowded" = cz_overcrowded2, 
+    "Unable to keep warm" = cz_warm2
   ), 
   stars = TRUE, 
   fmt = 2,
@@ -470,6 +541,28 @@ modelsummary::modelsummary(
   ), 
   gof_map = "nobs", 
   add_rows = pr2
+)
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = cz_affordability2, 
+    "Insecurity" = cz_insecurity2, 
+    "Poor quality" = cz_quality2, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent2, 
+    "Arrears on utilities" = cz_arrears_utility2, 
+    "Overcrowded" = cz_overcrowded2, 
+    "Unable to keep warm" = cz_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2,
+  output = "paper/figs/cz_matching_summary_robust.html"
 )
 ```
 
@@ -628,6 +721,13 @@ nl_m_out <- matchit(takeup_allowance_housing ~ n_persons +
           filter(!is.na(eligibility_allowance_housing)))
 
 summary(nl_m_out)
+nl_m_summary <- summary(nl_m_out)
+nl_m_summary$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/nl_matching_data.html")
+
 plot(summary(nl_m_out))
 
 nl_m_data <- match_data(nl_m_out) %>% 
@@ -640,30 +740,66 @@ nl_m_data <- match_data(nl_m_out) %>%
 table(nl_m_data$eligible)
 
 eligibility_nl_2023 |>
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality, 
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Whole population")
+  knitr::kable(digits = 1, caption = "Whole population", 
+    col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
+
+eligibility_nl_2023 |>
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality, 
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(digits = 1, caption = "Whole population", 
+    col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ), format = "html") |>
+  writeLines("paper/figs/nl_precarity_population.html")
 
 nl_m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality, 
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Matched households")
+  knitr::kable(digits = 1, caption = "Matched households", 
+    col.names = c(
+      "Group", 
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
 
+nl_m_data |> 
+  group_by(takeup_allowance_housing) |> 
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality, 
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(digits = 1, caption = "Matched households", 
+    col.names = c(
+      "Group", 
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ), format = "html") |>
+  writeLines("paper/figs/nl_precarity_matched.html")
 
 nl_affordability <- glm(dim_affordability ~ takeup_allowance_housing, # + 
   # eligibility_allowance_housing + 
@@ -681,15 +817,13 @@ nl_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing
 #  + eligibility_allowance_housing + 
       # income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> 
-      mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+    data = nl_m_data)
 
 nl_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> 
-      mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+    data = nl_m_data)
 
 nl_quality <- glm(dim_quality ~ takeup_allowance_housing, 
 # + eligibility_allowance_housing + 
@@ -707,7 +841,7 @@ nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+    data = nl_m_data)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
@@ -740,6 +874,28 @@ modelsummary::modelsummary(
   gof_map = "nobs", 
   add_rows = pr2
 )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = nl_affordability, 
+    "Insecurity" = nl_insecurity, 
+    "Poor quality" = nl_quality, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
+    "Arrears on utilities" = nl_arrears_utility, 
+    "Overcrowded" = nl_overcrowded, 
+    "Unable to keep warm" = nl_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2,
+  output = "paper/figs/nl_matching_summary.html"
+)
 ```
 
 ```{r}
@@ -759,15 +915,13 @@ nl_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = nl_m_data |> 
-    mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+  data = nl_m_data)
 
 nl_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = nl_m_data |> 
-    mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+  data = nl_m_data)
 
 nl_quality <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
@@ -785,8 +939,7 @@ nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = nl_m_data |> 
-    mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+  data = nl_m_data)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
@@ -833,7 +986,7 @@ eligibility_nl_2023_long <- eligibility_nl_2023 |>
   left_join(nl_q2022, by = "hh_id") |> 
   filter(income_disposable_eqi_quantile == income_disposable_eqi_quantile_before)
 
-nl_m_out <- matchit(takeup_allowance_housing ~ n_persons + 
+nl_m_out_robust <- matchit(takeup_allowance_housing ~ n_persons + 
                    income_disposable_wo_housing + 
                    eligibility_allowance_housing + 
                    tenure_status + 
@@ -847,21 +1000,23 @@ nl_m_out <- matchit(takeup_allowance_housing ~ n_persons +
         data = eligibility_nl_2023_long |> 
           filter(!is.na(eligibility_allowance_housing)))
 
-summary(nl_m_out)
-plot(summary(nl_m_out))
+summary(nl_m_out_robust)
+nl_m_summary_robust <- summary(nl_m_out_robust)
+nl_m_summary_robust$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/nl_matching_data_robust.html")
+plot(summary(nl_m_out_robust))
 
-nl_m_data <- match_data(nl_m_out) %>% 
+nl_m_data_robust <- match_data(nl_m_out_robust) %>% 
   mutate(takeup_allowance_housing = factor(takeup_allowance_housing, 
                                                levels = c(FALSE, TRUE), 
                                                labels = c("No, not taking benefits",
                                                           "Yes, taking benefits")), 
          eligibility_allowance_housing = eligibility_allowance_housing / 10)
 
-nl_m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
+nl_m_data_robust |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
@@ -870,70 +1025,68 @@ nl_m_data |>
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
   knitr::kable(digits = 1)
 
-nl_affordability <- glm(dim_affordability ~ takeup_allowance_housing, # + 
+nl_affordability2 <- glm(dim_affordability ~ takeup_allowance_housing, # + 
   # eligibility_allowance_housing + 
   #     income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data)
+    data = nl_m_data_robust)
 
-nl_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing, 
+nl_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing, 
     # + eligibility_allowance_housing + 
     #   income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data)
+    data = nl_m_data_robust)
 
-nl_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing,
+nl_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
       # income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> 
-      mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+    data = nl_m_data_robust)
 
-nl_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing,
+nl_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> 
-      mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+    data = nl_m_data_robust)
 
-nl_quality <- glm(dim_quality ~ takeup_allowance_housing, 
+nl_quality2 <- glm(dim_quality ~ takeup_allowance_housing, 
 # + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data)
+    data = nl_m_data_robust)
 
-nl_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing,
+nl_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data)
+    data = nl_m_data_robust)
 
-nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
+nl_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
-    data = nl_m_data |> mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+    data = nl_m_data_robust)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
-  x1 = pscl::pR2(nl_affordability)["McFadden"], 
-  x2 = pscl::pR2(nl_insecurity)["McFadden"],
-  x3 = pscl::pR2(nl_quality)["McFadden"],
-  x4 = pscl::pR2(nl_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(nl_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(nl_overcrowded)["McFadden"],
-  x7 = pscl::pR2(nl_warm)["McFadden"]
+  x1 = pscl::pR2(nl_affordability2)["McFadden"], 
+  x2 = pscl::pR2(nl_insecurity2)["McFadden"],
+  x3 = pscl::pR2(nl_quality2)["McFadden"],
+  x4 = pscl::pR2(nl_arrears_mortgage_rent2)["McFadden"],
+  x5 = pscl::pR2(nl_arrears_utility2)["McFadden"],
+  x6 = pscl::pR2(nl_overcrowded2)["McFadden"],
+  x7 = pscl::pR2(nl_warm2)["McFadden"]
 )
 
 modelsummary::modelsummary(
   list(
-    "Unaffordability" = nl_affordability, 
-    "Insecurity" = nl_insecurity, 
-    "Poor quality" = nl_quality, 
-    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
-    "Arrears on utilities" = nl_arrears_utility, 
-    "Overcrowded" = nl_overcrowded, 
-    "Unable to keep warm" = nl_warm
+    "Unaffordability" = nl_affordability2, 
+    "Insecurity" = nl_insecurity2, 
+    "Poor quality" = nl_quality2, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent2, 
+    "Arrears on utilities" = nl_arrears_utility2, 
+    "Overcrowded" = nl_overcrowded2, 
+    "Unable to keep warm" = nl_warm2
   ), 
   stars = TRUE, 
   fmt = 2,
@@ -944,6 +1097,28 @@ modelsummary::modelsummary(
   ), 
   gof_map = "nobs", 
   add_rows = pr2
+)
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = nl_affordability2, 
+    "Insecurity" = nl_insecurity2, 
+    "Poor quality" = nl_quality2, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent2, 
+    "Arrears on utilities" = nl_arrears_utility2, 
+    "Overcrowded" = nl_overcrowded2, 
+    "Unable to keep warm" = nl_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2,
+  output = "paper/figs/nl_matching_summary_robust.html"
 )
 
 ```
@@ -1084,6 +1259,13 @@ fi_allowance_2023_match <- matchit(takeup_allowance_housing ~ n_persons +
           filter(!is.na(region)))
 
 summary(fi_allowance_2023_match)
+fi_match_summary <- summary(fi_allowance_2023_match)
+fi_match_summary$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/fi_matching_data.html")
+
 plot(summary(fi_allowance_2023_match))
 
 fi_general_m_data <- match_data(fi_allowance_2023_match) %>% 
@@ -1097,29 +1279,63 @@ table(fi_general_m_data$eligible)
 
 eligibility_fi_2023 |>
   filter(!is.na(region)) |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Whole population")
+  knitr::kable(digits = 1, caption = "Whole population", col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
+
+eligibility_fi_2023 |>
+  filter(!is.na(region)) |> 
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(digits = 1, caption = "Whole population", col.names = c(
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ), format = "html") |>
+  writeLines("paper/figs/fi_precarity_population.html")
 
 fi_general_m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
-      c(dim_affordability, dim_insecurity, arrears_mortgage_rent, arrears_utility, 
-      dim_quality, overcrowded_eurostat, inability_to_keep_warm), 
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
-  knitr::kable(digits = 1, caption = "Matched households")
+  knitr::kable(digits = 1, caption = "Matched households", col.names = c(
+      "Group", 
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ))
+
+fi_general_m_data |> 
+  group_by(takeup_allowance_housing) |> 
+  summarise(
+    across(
+      c(dim_affordability, dim_insecurity, dim_quality,
+        arrears_mortgage_rent, arrears_utility, 
+        overcrowded_eurostat, inability_to_keep_warm), 
+      ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
+  knitr::kable(digits = 1, caption = "Matched households", col.names = c(
+      "Group", 
+      "Unaffordability", "Insecurity", "Poor quality", 
+      "Arrears on mortgage/rent", "Arrears on utilities", 
+      "Overcrowded", "Unable to keep warm"
+    ), format = "html") |>
+  writeLines("paper/figs/fi_precarity_matched.html")
 
 fi_affordability <- glm(dim_affordability ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
@@ -1137,15 +1353,13 @@ fi_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+  data = fi_general_m_data)
 
 fi_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+  data = fi_general_m_data)
 
 fi_quality <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
@@ -1163,8 +1377,7 @@ fi_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+  data = fi_general_m_data)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
@@ -1196,6 +1409,28 @@ modelsummary::modelsummary(
   ), 
   gof_map = "nobs", 
   add_rows = pr2
+)
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = fi_affordability, 
+    "Insecurity" = fi_insecurity, 
+    "Poor quality" = fi_quality, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
+    "Arrears on utilities" = fi_arrears_utility, 
+    "Overcrowded" = fi_overcrowded, 
+    "Unable to keep warm" = fi_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2,
+  output = "paper/figs/fi_matching_summary.html"
 )
 
 ```
@@ -1227,20 +1462,22 @@ fi_allowance_2023_match <- matchit(takeup_allowance_housing ~ n_persons +
           filter(!is.na(region)))
 
 summary(fi_allowance_2023_match)
+fi_match_robust <- summary(fi_allowance_2023_match)
+fi_match_robust$sum.matched |> 
+  as.data.frame() |> 
+  select(`Means Treated`, `Means Control`, `Std. Mean Diff.`) |>
+  knitr::kable(digits = 2, format = "html") |> 
+  writeLines("paper/figs/fi_matching_data_robust.html")
 plot(summary(fi_allowance_2023_match))
 
-fi_general_m_data <- match_data(fi_allowance_2023_match) %>% 
+fi_general_m_data_robust <- match_data(fi_allowance_2023_match) %>% 
   mutate(takeup_allowance_housing = factor(takeup_allowance_housing, 
                                                levels = c(FALSE, TRUE), 
                                                labels = c("No, not taking benefits",
                                                           "Yes, taking benefits")), 
          eligibility_allowance_housing = eligibility_allowance_housing / 10)
 
-fi_general_m_data |> 
-  mutate(
-    arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more")), 
-    arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more")), 
-    inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")) |> 
+fi_general_m_data_robust |> 
   group_by(takeup_allowance_housing) |> 
   summarise(
     across(
@@ -1249,71 +1486,68 @@ fi_general_m_data |>
       ~wtd.mean(.x, weights = hh_cross_weight, na.rm = TRUE) * 100)) |> 
   knitr::kable(digits = 1)
 
-fi_affordability <- glm(dim_affordability ~ takeup_allowance_housing + 
+fi_affordability2 <- glm(dim_affordability ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data)
+  data = fi_general_m_data_robust)
 
-fi_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + 
+fi_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data)
+  data = fi_general_m_data_robust)
 
-fi_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing +
+fi_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(arrears_mortgage_rent = as.numeric(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"))))
+  data = fi_general_m_data_robust)
 
-fi_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + 
+fi_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(arrears_utility = as.numeric(arrears_utility %in% c("Yes, once", "Yes, twice or more"))))
+  data = fi_general_m_data_robust)
 
-fi_quality <- glm(dim_quality ~ takeup_allowance_housing + 
+fi_quality2 <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data)
+  data = fi_general_m_data_robust)
 
-fi_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + 
+fi_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data)
+  data = fi_general_m_data_robust)
 
-fi_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + 
+fi_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
-  data = fi_general_m_data |> 
-    mutate(inability_to_keep_warm = as.numeric(ability_to_keep_warm == "No")))
+  data = fi_general_m_data_robust)
 
 pr2 <- data.frame(
   label = "pseudo-R2",
-  x1 = pscl::pR2(fi_affordability)["McFadden"], 
-  x2 = pscl::pR2(fi_insecurity)["McFadden"],
-  x3 = pscl::pR2(fi_quality)["McFadden"],
-  x4 = pscl::pR2(fi_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(fi_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(fi_overcrowded)["McFadden"],
-  x7 = pscl::pR2(fi_warm)["McFadden"]
+  x1 = pscl::pR2(fi_affordability2)["McFadden"], 
+  x2 = pscl::pR2(fi_insecurity2)["McFadden"],
+  x3 = pscl::pR2(fi_quality2)["McFadden"],
+  x4 = pscl::pR2(fi_arrears_mortgage_rent2)["McFadden"],
+  x5 = pscl::pR2(fi_arrears_utility2)["McFadden"],
+  x6 = pscl::pR2(fi_overcrowded2)["McFadden"],
+  x7 = pscl::pR2(fi_warm2)["McFadden"]
 )
 
 modelsummary::modelsummary(
   list(
-    "Unaffordability" = fi_affordability, 
-    "Insecurity" = fi_insecurity, 
-    "Poor quality" = fi_quality, 
-    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
-    "Arrears on utilities" = fi_arrears_utility, 
-    "Overcrowded" = fi_overcrowded, 
-    "Unable to keep warm" = fi_warm
+    "Unaffordability" = fi_affordability2, 
+    "Insecurity" = fi_insecurity2, 
+    "Poor quality" = fi_quality2, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent2, 
+    "Arrears on utilities" = fi_arrears_utility2, 
+    "Overcrowded" = fi_overcrowded2, 
+    "Unable to keep warm" = fi_warm2
   ), 
   stars = TRUE, 
   fmt = 2,
@@ -1325,6 +1559,29 @@ modelsummary::modelsummary(
   gof_map = "nobs", 
   add_rows = pr2
 )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = fi_affordability2, 
+    "Insecurity" = fi_insecurity2, 
+    "Poor quality" = fi_quality2, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent2, 
+    "Arrears on utilities" = fi_arrears_utility2, 
+    "Overcrowded" = fi_overcrowded2, 
+    "Unable to keep warm" = fi_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  add_rows = pr2, 
+  output = "paper/figs/fi_matching_summary_robust.html"
+)
+
 
 ```
 
@@ -1559,5 +1816,221 @@ it_2023_eligibility <- it_2023 |>
 it_2023_eligibility |> 
   mutate(allowance_housing_takeup = allowance_housing > 0) |> 
   paqr::tab(eligible_social_assistance, allowance_housing_takeup)
+```
+
+
+## Germany
+
+```{r}
+de_2023 <- r_silc_2023 |> 
+  filter(country == "DE")
+
+eligibility_de_2023 <- de_2023 |> 
+  mutate(
+    max_rent = case_when(
+      n_persons == 1 ~ 620.6, 
+      n_persons == 2 ~ 762.4,
+      n_persons == 3 ~ 907.8,
+      n_persons == 4 ~ 1057.2,
+      n_persons == 5 ~ 1208.6,
+      n_persons == 6 ~ 1208.6 + 146.4
+    ),
+    total_housing_cost_capped = if_else(total_housing_cost > max_rent, max_rent, total_housing_cost),
+    month_income = (income_disposable - allowance_housing) / 12,
+    a = case_when(
+      n_persons == 1 ~ 4e-2, 
+      n_persons == 2 ~ 3e-2,
+      n_persons == 3 ~ 2e-2,
+      n_persons == 4 ~ 1e-2,
+      n_persons == 5 ~ 0,
+      n_persons == 6 ~ -1e-2
+    ),
+    b = case_when(
+      n_persons == 1 ~ 4.911e-4, 
+      n_persons == 2 ~ 3.716e-4,
+      n_persons == 3 ~ 3.035e-4,
+      n_persons == 4 ~ 2.251e-4,
+      n_persons == 5 ~ 1.985e-4,
+      n_persons == 6 ~ 1.792e-4
+    ),
+    c = case_when(
+      n_persons == 1 ~ 4.620e-5, 
+      n_persons == 2 ~ 3.450e-5,
+      n_persons == 3 ~ 2.780e-5,
+      n_persons == 4 ~ 2.000e-5,
+      n_persons == 5 ~ 1.950e-5,
+      n_persons == 6 ~ 1.880e-5
+    ),
+    eligibility_allowance_housing = 
+      1.15 * (total_housing_cost_capped - (a + b * total_housing_cost_capped + c * month_income) * month_income),
+
+  )
+
+eligibility_de_2023 |> 
+  filter(eligibility_allowance_housing < 0) |>
+  select(allowance_housing, eligibility_allowance_housing) |> 
+  corrr::correlate()
+
+```
+
+## Summary
+
+```{r}
+cz_plot <- modelplot(
+  list(
+    # "Unable to keep warm" = cz_warm,
+    # "Overcrowded" = cz_overcrowded, 
+    # "Arrears on utilities" = cz_arrears_utility, 
+    # "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
+    "Poor quality" = cz_quality, 
+    "Insecurity" = cz_insecurity, 
+    "Unaffordability" = cz_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Czechia") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+nl_plot <- modelplot(
+  list(
+    # "Unable to keep warm" = nl_warm,
+    # "Overcrowded" = nl_overcrowded, 
+    # "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
+    # "Arrears on utilities" = nl_arrears_utility, 
+    "Poor quality" = nl_quality, 
+    "Insecurity" = nl_insecurity, 
+    "Unaffordability" = nl_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Netherlands") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+fi_plot <- modelplot(
+  list(
+    # "Unable to keep warm" = fi_warm,
+    # "Overcrowded" = fi_overcrowded, 
+    # "Arrears on utilities" = fi_arrears_utility, 
+    # "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
+    "Poor quality" = fi_quality, 
+    "Insecurity" = fi_insecurity, 
+    "Unaffordability" = fi_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Finland") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+library(patchwork)
+
+cz_plot + nl_plot + fi_plot + plot_layout(guides = 'collect', axis_titles = "collect") + 
+  plot_annotation(
+    title = "Effects of taking benefits on dimensions of precarity"  
+  )
+
+ggsave("paper/figs/fig_effect_benefit_takeup.png", width = 10, height = 6, bg = "white")
+```
+
+```{r}
+cz_plot <- modelplot(
+  list(
+    "Unable to keep warm" = cz_warm,
+    "Overcrowded" = cz_overcrowded, 
+    "Arrears on utilities" = cz_arrears_utility, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
+    "Poor quality" = cz_quality, 
+    "Insecurity" = cz_insecurity, 
+    "Unaffordability" = cz_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Czechia") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+nl_plot <- modelplot(
+  list(
+    "Unable to keep warm" = nl_warm,
+    "Overcrowded" = nl_overcrowded, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
+    "Arrears on utilities" = nl_arrears_utility, 
+    "Poor quality" = nl_quality, 
+    "Insecurity" = nl_insecurity, 
+    "Unaffordability" = nl_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Netherlands") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+fi_plot <- modelplot(
+  list(
+    "Unable to keep warm" = fi_warm,
+    "Overcrowded" = fi_overcrowded, 
+    "Arrears on utilities" = fi_arrears_utility, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
+    "Poor quality" = fi_quality, 
+    "Insecurity" = fi_insecurity, 
+    "Unaffordability" = fi_affordability
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Finland") + 
+  guides(color = guide_legend(reverse = TRUE))
+
+cz_plot + nl_plot + fi_plot + plot_layout(guides = 'collect', axis_titles = "collect") + 
+  plot_annotation(
+    title = "Effects of taking benefits on dimensions of precarity"  
+  )
+
+```
+
+```{r}
+cz_plot2 <- modelplot(
+  list(
+    # "Unable to keep warm" = cz_warm,
+    # "Overcrowded" = cz_overcrowded, 
+    # "Arrears on utilities" = cz_arrears_utility, 
+    # "Arrears on mortgage/rent" = cz_arrears_mortgage_rent, 
+    "Poor quality" = cz_quality2, 
+    "Insecurity" = cz_insecurity2, 
+    "Unaffordability" = cz_affordability2
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Czechia")
+
+nl_plot2 <- modelplot(
+  list(
+    # "Unable to keep warm" = nl_warm,
+    # "Overcrowded" = nl_overcrowded, 
+    # "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
+    # "Arrears on utilities" = nl_arrears_utility, 
+    "Poor quality" = nl_quality2, 
+    "Insecurity" = nl_insecurity2, 
+    "Unaffordability" = nl_affordability2
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Netherlands")
+
+fi_plot2 <- modelplot(
+  list(
+    # "Unable to keep warm" = fi_warm,
+    # "Overcrowded" = fi_overcrowded, 
+    # "Arrears on utilities" = fi_arrears_utility, 
+    # "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
+    "Poor quality" = fi_quality2, 
+    "Insecurity" = fi_insecurity2, 
+    "Unaffordability" = fi_affordability2
+  ), 
+  coef_map = c("takeup_allowance_housingYes, taking benefits"="")
+) + geom_vline(xintercept = 0) + 
+  labs(title = "Finland")
+
+cz_plot2 + nl_plot2 + fi_plot2 + plot_layout(guides = 'collect', axis_titles = "collect") + 
+  # theme(legend.position = "top") + 
+  plot_annotation(title = "Effects of taking benefits on dimensions of precarity")
+  # ggtitle("Effects of taking benefits on dimensions of precarity")
+
 ```
 
