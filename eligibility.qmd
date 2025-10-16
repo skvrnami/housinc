@@ -1951,8 +1951,8 @@ nl_plot <- modelplot(
   list(
     "Unable to keep warm" = nl_warm,
     "Overcrowded" = nl_overcrowded, 
-    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
     "Arrears on utilities" = nl_arrears_utility, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
     "Poor quality" = nl_quality, 
     "Insecurity" = nl_insecurity, 
     "Unaffordability" = nl_affordability
@@ -1977,10 +1977,14 @@ fi_plot <- modelplot(
   labs(title = "Finland") + 
   guides(color = guide_legend(reverse = TRUE))
 
-cz_plot + nl_plot + fi_plot + plot_layout(guides = 'collect', axis_titles = "collect") + 
+cz_plot + nl_plot + fi_plot + 
+  plot_layout(guides = 'collect', axis_titles = "collect") + 
   plot_annotation(
     title = "Effects of taking benefits on dimensions of precarity"  
   )
+
+ggsave("paper/figs/fig_effect_benefit_takeup_all.png", 
+        width = 10, height = 6, bg = "white")
 
 ```
 
