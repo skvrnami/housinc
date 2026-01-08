@@ -19,6 +19,12 @@ library(ggeffects)
 library(modelsummary)
 library(tinytable)
 
+HOUSEINC_PALETTE <- c(
+    "#51737B",
+    "#971A8D",
+    "#8DC242"
+)
+
 ```
 
 # Descriptives
@@ -352,7 +358,7 @@ m0 <- glm(housing_precarity_binary ~ tenure_status + hh_type +
 m0b <- glm(housing_precarity_binary ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + # urbanisation + 
     r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
+    tenure_status + r_renovated + country, 
     family = binomial(link = "logit"),
     data = hh_2023)
 
@@ -368,7 +374,7 @@ m1 <- glm(dim_affordability ~ tenure_status + hh_type +
 m2 <- glm(dim_affordability ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + # urbanisation + 
     r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
+    tenure_status + r_renovated + country, 
     family = binomial(link = "logit"),
     data = hh_2023)
 
@@ -383,7 +389,7 @@ m3 <- glm(dim_insecurity ~ tenure_status + hh_type +
 m4 <- glm(dim_insecurity ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + # urbanisation + 
     r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
+    tenure_status + r_renovated + country, 
     family = binomial(link = "logit"),
     data = hh_2023)
 
@@ -397,7 +403,7 @@ m5 <- glm(dim_quality ~ tenure_status + hh_type +
 m6 <- glm(dim_quality ~ tenure_status + hh_type + 
     hh_age + income_disposable_eqi_quantile + # urbanisation + 
     r_dwelling_type + r_econ_status + #r_heating_system + 
-    tenure_status * r_renovated + country, 
+    tenure_status + r_renovated + country, 
     family = binomial(link = "logit"),
     data = hh_2023)
 
@@ -456,13 +462,13 @@ attr(new_rows, "position") <- c(
 
 modelsummary(
     list(
-         "Precarity"= list(m0, m0b), 
+        "Precarity"= list(m0, m0b), 
         "Unaffordability"= list(m1, m2),
         "Insecurity"= list(m3, m4), 
         "Low quality"= list(m5, m6)), stars = TRUE, 
     coef_rename = COEF_MAP,
     gof_map = c("nobs"), 
-    add_rows = new_rows,
+    # add_rows = new_rows,
     shape = "cbind"
 )
 
@@ -472,14 +478,14 @@ modelsummary(
         "Unaffordability"= list(m1, m2),
         "Insecurity"= list(m3, m4), 
         "Low quality"= list(m5, m6)), stars = TRUE, 
-    coef_map = COEF_MAP,
+    coef_rename = COEF_MAP,
     gof_map = c("nobs"), 
     add_rows = new_rows,
     shape = "cbind", 
     fmt = 2,
     title = "Models explaining housing precarity and its facets",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/all_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity.html"
+) 
 
 ```
 
@@ -659,8 +665,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Czechia",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/cz_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_cz.html"
+) 
 
 ```
 
@@ -735,8 +741,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Belgium",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/be_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_be.html"
+) 
 
 ```
 
@@ -786,7 +792,6 @@ attr(new_rows, "position") <- c(
     1, 6, 11, 20, 27, 36, 41, 44,
     length(COEF_MAP2) * 2 + nrow(new_rows))
 
-
 modelsummary(
     list(
         "Precarity"= list(de_m01, de_m02), 
@@ -811,8 +816,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Germany",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/de_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_de.html"
+)
 
 ```
 
@@ -862,7 +867,6 @@ attr(new_rows, "position") <- c(
     1, 6, 11, 20, 27, 36, 41, 44,
     length(COEF_MAP2) * 2 + nrow(new_rows) - 2)
 
-
 modelsummary(
     list(
         "Precarity"= list(ee_m01, ee_m02), 
@@ -887,8 +891,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Estonia",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/ee_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_ee.html"
+) 
 
 ```
 
@@ -963,8 +967,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Finland",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/fi_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_fi.html"
+) 
 
 ```
 
@@ -1039,8 +1043,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Italy",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/it_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_it.html"
+) 
 
 ```
 
@@ -1154,8 +1158,8 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Netherlands",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/nl_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_nl.html"
+)
 
 
 ```
@@ -1231,14 +1235,301 @@ modelsummary(
     shape = "cbind", 
     fmt = 2,
     title = "Romania",
-    output = "typst"
-) |> save_tt(output = "paper/tabs/ro_models.typ", overwrite = TRUE)
+    output = "paper/figs/models_precarity_ro.html"
+) 
 
 
 # modelsummary(list(ro_m01, ro_m02, 
 #                   ro_m1, ro_m2, ro_m3, ro_m4, ro_m5, ro_m6), 
 #              stars = TRUE, output = "typst") |> 
 #     writeLines("paper/figs/tab_ro.typ")
+
+```
+
+```{r}
+plot_comparison_m02 <- function(term){
+    bind_rows(
+        ggeffect(cz_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Czechia"),
+        ggeffect(be_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Belgium"),
+        ggeffect(de_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Germany"),
+        ggeffect(ee_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Estonia"),
+        ggeffect(fi_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Finland"),
+        ggeffect(it_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Italy"),
+        ggeffect(nl_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Netherlands"),
+        ggeffect(ro_m02, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Romania")
+    ) -> tmp
+
+    tmp |> 
+        ggplot(aes(x = x, y = predicted, colour = country)) + 
+        geom_point(
+            # position = position_dodge(width = 0.8)
+        ) +
+        geom_linerange(
+            aes(ymin = conf.low, ymax = conf.high) 
+            # position = position_dodge(width = 0.8)
+        ) +
+        labs(colour = "Country", y = "predicted probability", x = "") + 
+        coord_flip() + 
+        theme_minimal() + 
+        theme(legend.position = "none") + 
+        facet_wrap(~country) + 
+        scale_y_continuous(labels = scales::percent_format(accuracy = 1)) + 
+        scale_colour_manual(values = c(
+            "#51737B",
+            "#971A8D",
+            "#8DC242",
+            "#88AAA5",
+            "#EABDE7",
+            "#B8CC9E",
+            "#5B0F55", 
+            "#B5B5C3"
+        ))
+}
+
+plot_comparison_m02("hh_age") + 
+    ggtitle("Predicted probability of housing precarity by age group")
+
+ggsave("paper/figs/plot_housing_precarity_age.png", width = 8, height = 6)
+
+plot_comparison_m02("tenure_status") + 
+    ggtitle("Predicted probability of housing precarity by tenure")
+
+ggsave("paper/figs/plot_housing_precarity_tenure.png", width = 8, height = 6)
+
+plot_comparison_m02("hh_type") + 
+    ggtitle("Predicted probability of housing precarity by household type")
+
+ggsave("paper/figs/plot_housing_precarity_hh_type.png", width = 8, height = 6)
+
+plot_comparison_m02("income_disposable_eqi_quantile") + 
+    ggtitle("Predicted probability of housing precarity by income quantile")
+
+ggsave("paper/figs/plot_housing_precarity_income.png", width = 8, height = 6)
+
+plot_comparison_m02("r_dwelling_type") + 
+    ggtitle("Predicted probability of housing precarity by dwelling type")
+
+ggsave("paper/figs/plot_housing_precarity_dwelling.png", width = 8, height = 6)
+
+plot_comparison_m02("r_econ_status") + 
+    ggtitle("Predicted probability of housing precarity by economic status")
+
+ggsave("paper/figs/plot_housing_precarity_econ.png", width = 8, height = 6)
+
+plot_comparison_m02("r_renovated") + 
+    ggtitle("Predicted probability of housing precarity by renovation")
+
+ggsave("paper/figs/plot_housing_precarity_renovation.png", width = 8, height = 6)
+
+plot_comparison_m2 <- function(term){
+    bind_rows(
+        ggeffect(cz_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Czechia"),
+        ggeffect(be_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Belgium"),
+        ggeffect(de_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Germany"),
+        ggeffect(ee_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Estonia"),
+        ggeffect(fi_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Finland"),
+        ggeffect(it_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Italy"),
+        ggeffect(nl_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Netherlands"),
+        ggeffect(ro_m2, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Romania")
+    ) -> tmp
+
+    tmp |> 
+        ggplot(aes(x = x, y = predicted, colour = country)) + 
+        geom_point(
+            # position = position_dodge(width = 0.8)
+        ) +
+        geom_linerange(
+            aes(ymin = conf.low, ymax = conf.high) 
+            # position = position_dodge(width = 0.8)
+        ) +
+        labs(colour = "Country", y = "predicted probability", x = "") + 
+        coord_flip() + 
+        theme_minimal() + 
+        theme(legend.position = "none") + 
+        facet_wrap(~country)
+}
+
+plot_comparison_m2("hh_age") + 
+    ggtitle("Predicted probability of housing unaffordability by age group")
+
+plot_comparison_m2("tenure_status") + 
+    ggtitle("Predicted probability of housing unaffordability by age group")
+
+plot_comparison_m2("hh_type") + 
+    ggtitle("Predicted probability of housing unaffordability by household type")
+
+plot_comparison_m2("income_disposable_eqi_quantile") + 
+    ggtitle("Predicted probability of housing unaffordability by income quantile")
+
+plot_comparison_m2("r_dwelling_type") + 
+    ggtitle("Predicted probability of housing unaffordability by dwelling type")
+
+plot_comparison_m2("r_econ_status") + 
+    ggtitle("Predicted probability of housing unaffordability by economic status")
+
+plot_comparison_m2("r_renovated") + 
+    ggtitle("Predicted probability of housing unaffordability by renovation")
+
+plot_comparison_m4 <- function(term){
+    bind_rows(
+        ggeffect(cz_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Czechia"),
+        ggeffect(be_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Belgium"),
+        ggeffect(de_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Germany"),
+        ggeffect(ee_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Estonia"),
+        ggeffect(fi_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Finland"),
+        ggeffect(it_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Italy"),
+        ggeffect(nl_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Netherlands"),
+        ggeffect(ro_m4, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Romania")
+    ) -> tmp
+
+    tmp |> 
+        ggplot(aes(x = x, y = predicted, colour = country)) + 
+        geom_point(
+            # position = position_dodge(width = 0.8)
+        ) +
+        geom_linerange(
+            aes(ymin = conf.low, ymax = conf.high) 
+            # position = position_dodge(width = 0.8)
+        ) +
+        labs(colour = "Country", y = "predicted probability", x = "") + 
+        coord_flip() + 
+        theme_minimal() + 
+        theme(legend.position = "none") + 
+        facet_wrap(~country)
+}
+
+plot_comparison_m4("hh_age") + 
+    ggtitle("Predicted probability of housing insecurity by age group")
+
+plot_comparison_m4("tenure_status") + 
+    ggtitle("Predicted probability of housing insecurity by age group")
+
+plot_comparison_m4("hh_type") + 
+    ggtitle("Predicted probability of housing insecurity by household type")
+
+plot_comparison_m4("income_disposable_eqi_quantile") + 
+    ggtitle("Predicted probability of housing insecurity by income quantile")
+
+plot_comparison_m4("r_dwelling_type") + 
+    ggtitle("Predicted probability of housing insecurity by dwelling type")
+
+plot_comparison_m4("r_econ_status") + 
+    ggtitle("Predicted probability of housing insecurity by economic status")
+
+
+plot_comparison_m6 <- function(term){
+    bind_rows(
+        ggeffect(cz_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Czechia"),
+        ggeffect(be_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Belgium"),
+        ggeffect(de_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Germany"),
+        ggeffect(ee_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Estonia"),
+        ggeffect(fi_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Finland"),
+        ggeffect(it_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Italy"),
+        ggeffect(nl_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Netherlands"),
+        ggeffect(ro_m6, terms = term) |> 
+            as.data.frame() |> 
+            mutate(country = "Romania")
+    ) -> tmp
+
+    tmp |> 
+        ggplot(aes(x = x, y = predicted, colour = country)) + 
+        geom_point(
+            # position = position_dodge(width = 0.8)
+        ) +
+        geom_linerange(
+            aes(ymin = conf.low, ymax = conf.high) 
+            # position = position_dodge(width = 0.8)
+        ) +
+        labs(colour = "Country", y = "predicted probability", x = "") + 
+        coord_flip() + 
+        theme_minimal() + 
+        theme(legend.position = "none") + 
+        facet_wrap(~country)
+}
+
+plot_comparison_m6("hh_age") + 
+    ggtitle("Predicted probability of poor housing quality by age group")
+
+plot_comparison_m6("tenure_status") + 
+    ggtitle("Predicted probability of poor housing quality by age group")
+
+plot_comparison_m6("hh_type") + 
+    ggtitle("Predicted probability of poor housing quality by household type")
+
+plot_comparison_m6("income_disposable_eqi_quantile") + 
+    ggtitle("Predicted probability of poor housing quality by income quantile")
+
+plot_comparison_m6("r_dwelling_type") + 
+    ggtitle("Predicted probability of poor housing quality by dwelling type")
+
+plot_comparison_m6("r_econ_status") + 
+    ggtitle("Predicted probability of poor housing quality by economic status")
+
+plot_comparison_m6("r_renovated") + 
+    ggtitle("Predicted probability of poor housing quality by renovation")
+
 
 ```
 
@@ -1381,7 +1672,8 @@ ggeffect(m0b, terms = c("tenure_status", "r_renovated")) |>
     coord_flip() + 
     labs(y = "Predicted probability of housing precarity", x ="", 
          colour = "Renovated", title = "") + 
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") + 
+    scale_colour_manual(values = HOUSEINC_PALETTE)
 
 ggsave("paper/figs/pp_all.png", width = 7)
 
@@ -1390,7 +1682,8 @@ ggeffect(m2, terms = c("tenure_status", "r_renovated")) |>
     coord_flip() + 
     labs(y = "Predicted probability of housing unaffordability", x ="", 
          colour = "Renovated", title = "") + 
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") + 
+    scale_colour_manual(values = HOUSEINC_PALETTE)
 
 ggsave("paper/figs/pp_affordability.png", width = 7)
 
@@ -1399,7 +1692,8 @@ ggeffect(m4, terms = c("tenure_status", "r_renovated")) |>
     coord_flip() + 
     labs(y = "Predicted probability of housing insecurity", x ="", 
          colour = "Renovated", title = "") + 
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") + 
+    scale_colour_manual(values = HOUSEINC_PALETTE)
 
 ggsave("paper/figs/pp_insecurity.png", width = 7)
 
@@ -1408,7 +1702,8 @@ ggeffect(m6, terms = c("tenure_status", "r_renovated")) |>
     coord_flip() + 
     labs(y = "Predicted probability of low housing quality", x ="", 
          colour = "Renovated", title = "") + 
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") + 
+    scale_colour_manual(values = HOUSEINC_PALETTE)
 
 ggsave("paper/figs/pp_quality.png", width = 7)
 

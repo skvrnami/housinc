@@ -415,11 +415,17 @@ recode_vars <- function(df, r_rooms){
         (income_disposable / 12) * 100,
       income_share_on_housing_wo_hb = total_housing_cost /
         ((income_disposable - allowance_housing) / 12) * 100,
-      income_share_on_housing_eurostat = (total_housing_cost - allowance_housing) / 
+      income_share_on_housing_wo_hb_gross = total_housing_cost /
+        ((income_disposable - allowance_housing_gross) / 12) * 100,
+      income_share_on_housing_eurostat = (total_housing_cost - (allowance_housing / 12)) / 
         ((income_disposable - allowance_housing) / 12) * 100,
+      income_share_on_housing_eurostat_gross = (total_housing_cost - (allowance_housing_gross / 12)) / 
+        ((income_disposable - allowance_housing_gross) / 12) * 100,
       housing_overburden = as.numeric(income_share_on_housing > 40),
       housing_overburden_wo_hb = as.numeric(income_share_on_housing_wo_hb > 40),
-      housing_overburden_eurostat = as.numeric(income_share_on_housing_eurostat > 40)
+      housing_overburden_wo_hb_gross = as.numeric(income_share_on_housing_wo_hb_gross > 40),
+      housing_overburden_eurostat = as.numeric(income_share_on_housing_eurostat > 40),
+      housing_overburden_eurostat_gross = as.numeric(income_share_on_housing_eurostat_gross > 40)
     ) %>%
     mutate(
       flag_income_share_on_housing_out_of_range =
@@ -489,9 +495,11 @@ summarise_precarity <- function(df){
     summarise(
       # affordability
       mean_housing_overburden = wtd.mean(housing_overburden, w = hh_cross_weight) * 100,
-
+      
       mean_housing_overburden_wo_hb = wtd.mean(housing_overburden_wo_hb, w = hh_cross_weight) * 100,
+      mean_housing_overburden_wo_hb_gross = wtd.mean(housing_overburden_wo_hb_gross, w = hh_cross_weight) * 100,
       mean_housing_overburden_eurostat = wtd.mean(housing_overburden_eurostat, w = hh_cross_weight) * 100,
+      mean_housing_overburden_eurostat_gross = wtd.mean(housing_overburden_eurostat_gross, w = hh_cross_weight) * 100,
       # tenure security
       mean_arrears_mortgage_rent = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"),
                                             w = hh_cross_weight) * 100,
@@ -601,30 +609,30 @@ add_income_quantiles <- function(tmp){
     left_join(., quantiles_eqi, by = "country") %>%
     mutate(
       income_disposable_quantile = case_when(
-        income_disposable <= p20 ~ "1st quantile (lowest)",
-        income_disposable <= p40 ~ "2nd quantile",
-        income_disposable <= p60 ~ "3rd quantile",
-        income_disposable <= p80 ~ "4th quantile",
-        income_disposable > p80 ~ "5th quantile (highest)"
-      ) %>% factor(., levels = c("1st quantile (lowest)",
-                                 "2nd quantile",
-                                 "3rd quantile",
-                                 "4th quantile",
-                                 "5th quantile (highest)")),
+        income_disposable <= p20 ~ "1st quintile (lowest)",
+        income_disposable <= p40 ~ "2nd quintile",
+        income_disposable <= p60 ~ "3rd quintile",
+        income_disposable <= p80 ~ "4th quintile",
+        income_disposable > p80 ~ "5th quintile (highest)"
+      ) %>% factor(., levels = c("1st quintile (lowest)",
+                                 "2nd quintile",
+                                 "3rd quintile",
+                                 "4th quintile",
+                                 "5th quintile (highest)")),
       income_disposable_median = if_else(
         income_disposable <= p50, "Under median", "Above median"
       ) %>% factor(., levels = c("Under median", "Above median")),
       income_disposable_eqi_quantile = case_when(
-        income_disposable_eqi <= p20_eqi ~ "1st quantile (lowest)",
-        income_disposable_eqi <= p40_eqi ~ "2nd quantile",
-        income_disposable_eqi <= p60_eqi ~ "3rd quantile",
-        income_disposable_eqi <= p80_eqi ~ "4th quantile",
-        income_disposable_eqi > p80_eqi ~ "5th quantile (highest)"
-      ) %>% factor(., levels = c("1st quantile (lowest)",
-                                 "2nd quantile",
-                                 "3rd quantile",
-                                 "4th quantile",
-                                 "5th quantile (highest)")),
+        income_disposable_eqi <= p20_eqi ~ "1st quintile (lowest)",
+        income_disposable_eqi <= p40_eqi ~ "2nd quintile",
+        income_disposable_eqi <= p60_eqi ~ "3rd quintile",
+        income_disposable_eqi <= p80_eqi ~ "4th quintile",
+        income_disposable_eqi > p80_eqi ~ "5th quintile (highest)"
+      ) %>% factor(., levels = c("1st quintile (lowest)",
+                                 "2nd quintile",
+                                 "3rd quintile",
+                                 "4th quintile",
+                                 "5th quintile (highest)")),
       income_disposable_eqi_median = if_else(
         income_disposable_eqi <= p50_eqi, "Under median", "Above median"
       ) %>% factor(., levels = c("Under median", "Above median"))
@@ -687,30 +695,30 @@ add_income_quantiles_long <- function(tmp, weight_quantiles = TRUE){
     left_join(., quantiles_eqi, by = c("country", "year")) %>%
     mutate(
       income_disposable_quantile = case_when(
-        income_disposable <= p20 ~ "1st quantile (lowest)",
-        income_disposable <= p40 ~ "2nd quantile",
-        income_disposable <= p60 ~ "3rd quantile",
-        income_disposable <= p80 ~ "4th quantile",
-        income_disposable > p80 ~ "5th quantile (highest)"
-      ) %>% factor(., levels = c("1st quantile (lowest)",
-                                 "2nd quantile",
-                                 "3rd quantile",
-                                 "4th quantile",
-                                 "5th quantile (highest)")),
+        income_disposable <= p20 ~ "1st quintile (lowest)",
+        income_disposable <= p40 ~ "2nd quintile",
+        income_disposable <= p60 ~ "3rd quintile",
+        income_disposable <= p80 ~ "4th quintile",
+        income_disposable > p80 ~ "5th quintile (highest)"
+      ) %>% factor(., levels = c("1st quintile (lowest)",
+                                 "2nd quintile",
+                                 "3rd quintile",
+                                 "4th quintile",
+                                 "5th quintile (highest)")),
       income_disposable_median = if_else(
         income_disposable <= p50, "Under median", "Above median"
       ) %>% factor(., levels = c("Under median", "Above median")),
       income_disposable_eqi_quantile = case_when(
-        income_disposable_eqi <= p20_eqi ~ "1st quantile (lowest)",
-        income_disposable_eqi <= p40_eqi ~ "2nd quantile",
-        income_disposable_eqi <= p60_eqi ~ "3rd quantile",
-        income_disposable_eqi <= p80_eqi ~ "4th quantile",
-        income_disposable_eqi > p80_eqi ~ "5th quantile (highest)"
-      ) %>% factor(., levels = c("1st quantile (lowest)",
-                                 "2nd quantile",
-                                 "3rd quantile",
-                                 "4th quantile",
-                                 "5th quantile (highest)")),
+        income_disposable_eqi <= p20_eqi ~ "1st quintile (lowest)",
+        income_disposable_eqi <= p40_eqi ~ "2nd quintile",
+        income_disposable_eqi <= p60_eqi ~ "3rd quintile",
+        income_disposable_eqi <= p80_eqi ~ "4th quintile",
+        income_disposable_eqi > p80_eqi ~ "5th quintile (highest)"
+      ) %>% factor(., levels = c("1st quintile (lowest)",
+                                 "2nd quintile",
+                                 "3rd quintile",
+                                 "4th quintile",
+                                 "5th quintile (highest)")),
       income_disposable_eqi_median = if_else(
         income_disposable_eqi <= p50_eqi, "Under median", "Above median"
       ) %>% factor(., levels = c("Under median", "Above median"))

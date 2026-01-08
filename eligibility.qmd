@@ -269,6 +269,7 @@ m_data <- match_data(m_out) %>%
          eligibility_allowance_housing = eligibility_allowance_housing / 10)
 
 table(m_data$eligible)
+table(m_data$weights)
 
 eligibility_cz_2023 |>
   filter(!is.na(region)) |> 
@@ -339,36 +340,43 @@ m_data |>
 cz_affordability <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_quality <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 cz_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data)
 
 pr2 <- data.frame(
@@ -398,9 +406,9 @@ modelsummary::modelsummary(
     "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
     "eligibility_allowance_housing" = "Amount of benefits eligible for",
     "income_disposable_wo_housing" = "Disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2
+  ) 
+  # gof_map = "nobs" 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -424,6 +432,28 @@ modelsummary::modelsummary(
   add_rows = pr2, 
   output = "paper/figs/cz_matching_summary.html"
 )
+```
+
+```{r}
+m_data |> 
+  mutate(
+    rent = if_else(is.na(rent), 0, rent), 
+    total_disposable_income_before_social_transfers = 
+      if_else(total_disposable_income_before_social_transfers < 0, 0, total_disposable_income_before_social_transfers)
+  ) |> 
+  group_by(takeup_allowance_housing) |> 
+  mutate(
+    share_income_on_housing = total_housing_cost / total_disposable_income_before_social_transfers
+  ) |> 
+  mutate(
+    share_income_on_housing = if_else(share_income_on_housing > 1, 1, share_income_on_housing)
+  ) |> 
+  summarise(
+    # mean_rent = mean(rent, na.rm = TRUE), 
+    mean_rent = mean(rent),
+    mean_thc = mean(total_housing_cost, na.rm = TRUE), 
+    mean_thc_share = mean(share_income_on_housing)
+  )
 ```
 
 ### Robustness check: only households whose quantile of disposable income did not change (from last year)
@@ -479,36 +509,43 @@ m_data_robust |>
 cz_affordability2 <- glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_quality2 <- glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 cz_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_allowance_housing + 
       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = m_data_robust)
 
 pr2 <- data.frame(
@@ -805,42 +842,49 @@ nl_affordability <- glm(dim_affordability ~ takeup_allowance_housing, # +
   # eligibility_allowance_housing + 
   #     income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing, 
     # + eligibility_allowance_housing + 
     #   income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
       # income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_quality <- glm(dim_quality ~ takeup_allowance_housing, 
 # + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data)
 
 pr2 <- data.frame(
@@ -903,42 +947,49 @@ nl_affordability <- glm(dim_affordability ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_quality <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = nl_m_data)
 
 pr2 <- data.frame(
@@ -972,6 +1023,27 @@ modelsummary::modelsummary(
   gof_map = "nobs", 
   add_rows = pr2
 )
+```
+
+```{r}
+nl_m_data |> 
+  mutate(
+    rent = if_else(is.na(rent), 0, rent),
+    total_disposable_income_before_social_transfers = 
+      if_else(total_disposable_income_before_social_transfers < 0, 0, total_disposable_income_before_social_transfers)
+  ) |> 
+  group_by(takeup_allowance_housing) |> 
+  mutate(
+    share_income_on_housing = total_housing_cost / total_disposable_income_before_social_transfers
+  ) |> 
+  mutate(
+    share_income_on_housing = if_else(share_income_on_housing > 1, 1, share_income_on_housing)
+  ) |> 
+  summarise(
+    mean_rent = mean(rent, na.rm = TRUE), 
+    mean_thc = mean(total_housing_cost, na.rm = TRUE), 
+    mean_thc_share = mean(share_income_on_housing)
+  )
 ```
 
 ### Robustness check
@@ -1029,42 +1101,49 @@ nl_affordability2 <- glm(dim_affordability ~ takeup_allowance_housing, # +
   # eligibility_allowance_housing + 
   #     income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing, 
     # + eligibility_allowance_housing + 
     #   income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
       # income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_quality2 <- glm(dim_quality ~ takeup_allowance_housing, 
 # + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 nl_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
 #  + eligibility_allowance_housing + 
 #       income_disposable_wo_housing, 
     family = "binomial",
+    weights = weights, 
     data = nl_m_data_robust)
 
 pr2 <- data.frame(
@@ -1341,42 +1420,49 @@ fi_affordability <- glm(dim_affordability ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_insecurity <- glm(dim_insecurity ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_arrears_mortgage_rent <- glm(arrears_mortgage_rent ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_arrears_utility <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_quality <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_overcrowded <- glm(overcrowded_eurostat ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 fi_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data)
 
 pr2 <- data.frame(
@@ -1433,6 +1519,27 @@ modelsummary::modelsummary(
   output = "paper/figs/fi_matching_summary.html"
 )
 
+```
+
+```{r}
+fi_general_m_data |> 
+  mutate(
+    rent = if_else(is.na(rent), 0, rent),
+    total_disposable_income_before_social_transfers = 
+      if_else(total_disposable_income_before_social_transfers < 0, 0, total_disposable_income_before_social_transfers)
+  ) |> 
+  group_by(takeup_allowance_housing) |> 
+  mutate(
+    share_income_on_housing = total_housing_cost / total_disposable_income_before_social_transfers
+  ) |> 
+  mutate(
+    share_income_on_housing = if_else(share_income_on_housing > 1, 1, share_income_on_housing)
+  ) |> 
+  summarise(
+    mean_rent = mean(rent), 
+    mean_thc = mean(total_housing_cost, na.rm = TRUE), 
+    mean_thc_share = mean(share_income_on_housing)
+  )
 ```
 
 ### Robustness check
@@ -1496,36 +1603,42 @@ fi_insecurity2 <- glm(dim_insecurity ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 fi_arrears_mortgage_rent2 <- glm(arrears_mortgage_rent ~ takeup_allowance_housing +
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 fi_arrears_utility2 <- glm(arrears_utility ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 fi_quality2 <- glm(dim_quality ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 fi_overcrowded2 <- glm(overcrowded_eurostat ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 fi_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing + 
   eligibility_allowance_housing + 
   income_disposable_wo_housing, 
   family = "binomial",
+  weights = weights, 
   data = fi_general_m_data_robust)
 
 pr2 <- data.frame(
@@ -1658,26 +1771,31 @@ fi_pensionsers_hb_data <- match_data(fi_pensioners_hb) %>%
 
 glm(dim_affordability ~ takeup_allowance_housing + eligibility_allowance_housing, 
     family = "binomial",
+    weights = weights, 
     data = fi_pensionsers_hb_data) %>% 
   modelsummary::modelsummary(., stars = TRUE)
 
 glm(dim_quality ~ takeup_allowance_housing + eligibility_allowance_housing, 
     family = "binomial",
+    weights = weights, 
     data = fi_pensionsers_hb_data) %>% 
   modelsummary::modelsummary(., stars = TRUE)
 
 glm(dim_quality2 ~ takeup_allowance_housing + eligibility_allowance_housing, 
     family = "binomial",
+    weights = weights, 
     data = fi_pensionsers_hb_data) %>% 
   modelsummary::modelsummary(., stars = TRUE)
 
 glm(dim_insecurity ~ takeup_allowance_housing + eligibility_allowance_housing, 
     family = "binomial",
+    weights = weights, 
     data = fi_pensionsers_hb_data) %>% 
   modelsummary::modelsummary(., stars = TRUE)
 
 glm(dim_locality ~ takeup_allowance_housing + eligibility_allowance_housing, 
     family = "binomial",
+    weights = weights, 
     data = fi_pensionsers_hb_data) %>% 
   modelsummary::modelsummary(., stars = TRUE)
 ```

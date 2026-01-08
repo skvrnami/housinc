@@ -1,0 +1,995 @@
+---
+title: "Descriptive statistics"
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show code"
+    self-contained: true
+    toc: true
+---
+
+```{r, warnings=FALSE, message=FALSE}
+library(knitr)
+library(dplyr)
+library(targets)
+library(haven)
+library(Hmisc)
+library(tidyr)
+library(ggplot2)
+
+tar_load(hh_r_silc_2023)
+
+hh_r_silc_2023 <- hh_r_silc_2023 |> 
+    mutate(country = as.character(country)) |> 
+    filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) |> 
+    mutate(
+        income_disposable_wo_hb_eqi = (income_disposable - allowance_housing) / consumption_units, 
+        income_disposable_wo_hb = (income_disposable - allowance_housing)
+    )
+
+quantiles_wo_hb <- hh_r_silc_2023 |> 
+    group_by(country) |> 
+    summarise(
+      p20 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.2)),
+      p40 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.4)),
+      p50 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.5)),
+      p60 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.6)),
+      p80 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.8)),
+      .groups = "drop"
+    )
+
+hh_r_silc_2023 <- hh_r_silc_2023 |> 
+    select(-c(p20, p40, p60, p80)) |>
+    left_join(quantiles_wo_hb, by = "country") |> 
+    mutate(
+      income_disposable_quantile_wo_hb = case_when(
+        income_disposable_wo_hb_eqi <= p20 ~ "1st quantile (lowest)",
+        income_disposable_wo_hb_eqi <= p40 ~ "2nd quantile",
+        income_disposable_wo_hb_eqi <= p60 ~ "3rd quantile",
+        income_disposable_wo_hb_eqi <= p80 ~ "4th quantile",
+        income_disposable_wo_hb_eqi > p80 ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)"))
+    )
+
+hb_total <- hh_r_silc_2023 |> 
+    group_by(country) |> 
+    summarise(
+        `% of HH taking housing allowance (total)` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100)
+
+hb_tenants <- hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |> 
+    group_by(country) |> 
+    summarise(
+        `% of HH taking housing allowance (tenants)` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100)
+
+hb_tenants_market <- hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price"
+    )) |> 
+    group_by(country) |> 
+    summarise(
+        `% of HH taking housing allowance (tenants at market price)` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100)
+
+hb_tenants_reduced <- hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at reduced price"
+    )) |> 
+    group_by(country) |> 
+    summarise(
+        `% of HH taking housing allowance (tenants at reduced price)` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100)
+
+```
+
+# Podíl domácností s příspěvek na bydlení
+```{r}
+full_join(hb_total, hb_tenants, by = "country") |> 
+    full_join(hb_tenants_market, by = "country") |> 
+    full_join(hb_tenants_reduced, by = "country") |>
+    knitr::kable(digits = 2, caption = "Households receiving housing benefits")
+
+```
+
+# Distribuce domácností dle typu bydlení
+```{r}
+hh_r_silc_2023 |> 
+    group_by(country, tenure_status) |>
+    summarise(n = sum(hh_cross_weight)) |>
+    ungroup() |> 
+    group_by(country) |>
+    mutate(pct = n / sum(n) * 100) |>
+    select(-n) |>
+    pivot_wider(names_from = tenure_status,
+                values_from = pct) |> 
+    kable(digits = 2, caption = "Tenure status distribution")
+```
+
+# Podíl domácností s příspěvek na bydlení dle příjmového kvintilu
+```{r}
+hh_r_silc_2023 |> 
+    group_by(country, income_disposable_quantile_wo_hb) |>
+    summarise(
+        `% of HH taking housing allowance` = wtd.mean(allowance_housing_gross > 0, weights = hh_cross_weight) * 100
+    ) |> 
+    ungroup() |> 
+    pivot_wider(names_from = income_disposable_quantile_wo_hb,
+                values_from = `% of HH taking housing allowance`) |> 
+    kable(digits = 2, caption = "% of households receiving housing allowances by income quintile")
+
+```
+
+# Podíl nájemníků s příspěvkem na bydlení dle příjmového kvintilu
+```{r}
+hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |>
+    group_by(country, income_disposable_quantile_wo_hb) |>
+    summarise(
+        `% of HH taking housing allowance` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100
+    ) |> 
+    pivot_wider(names_from = income_disposable_quantile_wo_hb,
+                values_from = `% of HH taking housing allowance`) |> 
+    kable(digits = 2, caption = "% of tenant households receiving housing allowances by income quintile")
+```
+
+% domácnosti s příspěvek na bydlení dle typologie domácnosti - HB110: HOUSEHOLD TYPE, ekonomický status přednosty, důchod
+% nájemníků s příspěvek na bydlení dle typologie - HB110: HOUSEHOLD TYPE, ekonomický status přednosty, důchodci
+
+# Podíl domácností s příspěvkem na bydlení dle typu domácnosti
+
+- pro Itálii chybí typologie domácností
+- v Nizozemsku kategorizují domácnosti jinak? (chybí Lone parent with all children aged 25 or more a Couple with all children aged 25 or more)
+```{r}
+hh_r_silc_2023 |> 
+    mutate(hh_type = as_factor(hh_type)) |>
+    group_by(country, hh_type) |>
+    summarise(
+        `% of HH taking housing allowance` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100
+    ) |> 
+    pivot_wider(names_from = hh_type,
+                values_from = `% of HH taking housing allowance`) |> 
+    kable(digits = 2, caption = "% of tenant households receiving housing allowances by household type")
+```
+
+```{r}
+hh_r_silc_2023 |> 
+    group_by(country, econ_status) |>
+    summarise(
+        `% of HH taking housing allowance` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100
+    ) |> 
+    pivot_wider(names_from = econ_status,
+                values_from = `% of HH taking housing allowance`) |> 
+    kable(digits = 2, caption = "% of tenant households receiving housing allowances by household type")
+```
+
+# Mediánový poměr mezi nájmem a příjmy mezi nájemníky s příspěvkem na bydlení
+
+- v tom původním paperu počítájí s (neekvivalizovaným) nájmem a ekvivalizovaným příjmem. To podle mě nedává smysl, protože větší domácností platí větší nájem. Proto počítám s neekvivalizovaným příjmem (a nájmem i celkovými náklady na bydlení, které asi dávají smysl, když příspěvek na bydlení (někde) pokrývá i náklady na energie).
+
+```{r}
+hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |>
+    filter(allowance_housing > 0) |>
+    mutate(
+        rent_to_income_before_ha = rent / (income_disposable_wo_hb / 12) ,
+        rent_to_income_after_ha = (rent - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |>
+    group_by(country) |>
+    summarise(
+        `Median rent-to-income before HA` = wtd.quantile(rent_to_income_before_ha, probs = 0.5, weights = hh_cross_weight),
+        `Median rent-to-income after HA` = wtd.quantile(rent_to_income_after_ha, probs = 0.5, weights = hh_cross_weight)
+    ) |> 
+    kable(digits = 2, caption = "Median rent-to-income ratios among tenants in receipt of housing allowances")
+
+```
+
+# Mediánový poměr mezi náklady na bydlení a příjmy mezi nájemníky s příspěvkem na bydlení
+```{r}
+hh_r_silc_2023 |> 
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |>
+    filter(allowance_housing > 0) |>
+    mutate(
+        housing_to_income_before_ha = total_housing_cost / (income_disposable_wo_hb / 12) ,
+        housing_to_income_after_ha = (total_housing_cost - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |>
+    group_by(country) |>
+    summarise(
+        `Median housing cost-to-income before HA` = wtd.quantile(housing_to_income_before_ha, probs = 0.5, weights = hh_cross_weight),
+        `Median housing cost-to-income after HA` = wtd.quantile(housing_to_income_after_ha, probs = 0.5, weights = hh_cross_weight)
+    ) |> 
+    kable(digits = 2, caption = "Median housing cost-to-income ratios among tenants in receipt of housing allowances")
+```
+
+```{r}
+precarity_2023 <- hh_r_silc_2023 |> 
+    mutate(
+      dim_affordability = housing_overburden,
+      dim_insecurity = arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more") |
+          arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+      dim_quality = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+          ability_to_keep_warm == "No"),
+      ),
+      dim_quality2 = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        is.na(toilet) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+                  ability_to_keep_warm == "No" |
+                  bath_shower %in% c("No", "Yes, shared") |
+                  toilet %in% c("No", "Yes, shared") |
+                  leaks_damp == "Yes"),
+      ),
+      dim_locality =
+        probs_noise == "Yes" |
+          probs_crime == "Yes" |
+          probs_noise == "Yes",
+      precarity_level = 
+        dim_affordability + dim_quality + dim_insecurity
+    )
+
+```
+
+# Prekarita, všechny domácnosti
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity among all households")
+```
+
+# Prekarita, nájemníci
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants")
+```
+
+# Prekarita, nájemníci v tržním nájmu
+
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants at market price")
+
+
+```
+
+## Prekarita, nájemníci v obecním bydlení
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at reduced price"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants at reduced price")
+
+```
+
+## Prekarita, domácnosti s příspěvkem
+
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(allowance_housing > 0) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity among all households")
+```
+
+## Prekarita, nájemníci s příspěvkem
+
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(allowance_housing > 0) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price",
+        "Tenant, rent at reduced price",
+        "Tenant, rent free"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants")
+
+```
+
+## Prekarita, nájemníci v tržním nájmu s příspěvkem
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(allowance_housing > 0) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at market price"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants at market price")
+
+```
+
+## Prekarita, nájemníci v obecním bydlení s příspěvkem
+```{r}
+precarity_2023 |>
+    filter(!is.na(precarity_level)) |>
+    filter(allowance_housing > 0) |>
+    filter(tenure_status %in% c(
+        "Tenant, rent at reduced price"
+    )) |>
+    group_by(country) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity tenants at reduced price")
+```
+
+# Prekarita v různých sociálních skupinách
+
+## Prekarita podle příjmového kvintilu
+
+```{r}
+precarity_2023 |> 
+    filter(!is.na(precarity_level)) |>
+    group_by(country, income_disposable_quantile) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity, income quintile")
+
+```
+
+## Prekarita podle typu domácnosti
+
+```{r}
+precarity_2023 |> 
+    filter(!is.na(precarity_level)) |>
+    mutate(hh_type = as_factor(hh_type)) |> 
+    group_by(country, hh_type) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity, household type")
+```
+
+## Prekarita podle ekonomického statusu
+```{r}
+precarity_2023 |> 
+    filter(!is.na(precarity_level)) |>
+    group_by(country, econ_status) |> 
+    summarise(
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (only 1 dimension)` = wtd.mean(precarity_level == 1, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (2 dimensions)` = wtd.mean(precarity_level == 2, weights = hh_cross_weight) * 100, 
+      `% HH in precarity (3 dimensions)` = wtd.mean(precarity_level == 3, weights = hh_cross_weight) * 100,
+      `% HH in affordability dimension` = wtd.mean(dim_affordability, weights = hh_cross_weight) * 100,
+      `% HH in insecurity dimension` = wtd.mean(dim_insecurity, weights = hh_cross_weight) * 100,
+      `% HH in quality dimension` = wtd.mean(dim_quality, weights = hh_cross_weight) * 100, 
+      `% arrears on mortgage/rent` = wtd.mean(arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100,
+      `% arrears on utility` = wtd.mean(arrears_utility %in% c("Yes, once", "Yes, twice or more"), weights = hh_cross_weight) * 100, 
+      `% overcrowded` = wtd.mean(overcrowded_eurostat, hh_cross_weight) * 100, 
+      `% unable to keep warm` = wtd.mean(ability_to_keep_warm == "No", hh_cross_weight) * 100
+    ) |> 
+    kable(digits = 2, caption = "Housing precarity, econ. status")
+```
+
+## Vývoj v čase
+
+```{r}
+select_countries <- function(df){
+    df |> 
+        mutate(country = as.character(country)) |> 
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) |> 
+        mutate(
+        allowance_housing = case_when(
+            country == "DE" & is.na(allowance_housing) ~ 0,
+            country == "FI" & is.na(allowance_housing) ~ 0,
+            country == "NL" & is.na(allowance_housing) ~ 0,
+            TRUE ~ allowance_housing
+        )
+        ) |>
+        mutate(
+            income_disposable_wo_hb_eqi = (income_disposable - allowance_housing) / consumption_units, 
+            income_disposable_wo_hb = (income_disposable - allowance_housing)
+        )
+}
+
+calculate_precarity <- function(df){
+    df |> 
+        mutate(
+      dim_affordability = housing_overburden,
+      dim_insecurity = arrears_mortgage_rent %in% c("Yes, once", "Yes, twice or more") |
+          arrears_utility %in% c("Yes, once", "Yes, twice or more"),
+      dim_quality = case_when(
+        is.na(overcrowded_eurostat) ~ NA,
+        TRUE ~ (overcrowded_eurostat |
+          ability_to_keep_warm == "No"),
+      ),
+      precarity_level = 
+        dim_affordability + dim_quality + dim_insecurity
+    )
+}
+
+add_quantiles <- function(df){
+    quantiles_wo_hb <- df |> 
+    group_by(country) |> 
+    summarise(
+      p20 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.2)),
+      p40 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.4)),
+      p50 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.5)),
+      p60 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.6)),
+      p80 = wtd.quantile(income_disposable_wo_hb_eqi, hh_cross_weight, probs = c(0.8)),
+      .groups = "drop"
+    )
+
+    df |> 
+    select(-c(p20, p40, p60, p80)) |>
+    left_join(quantiles_wo_hb, by = "country") |> 
+    mutate(
+      income_disposable_quantile_wo_hb = case_when(
+        income_disposable_wo_hb_eqi <= p20 ~ "1st quantile (lowest)",
+        income_disposable_wo_hb_eqi <= p40 ~ "2nd quantile",
+        income_disposable_wo_hb_eqi <= p60 ~ "3rd quantile",
+        income_disposable_wo_hb_eqi <= p80 ~ "4th quantile",
+        income_disposable_wo_hb_eqi > p80 ~ "5th quantile (highest)"
+      ) %>% factor(., levels = c("1st quantile (lowest)",
+                                 "2nd quantile",
+                                 "3rd quantile",
+                                 "4th quantile",
+                                 "5th quantile (highest)"))
+    )
+
+}
+
+tar_load(hh_r_silc_2018)
+tar_load(hh_r_silc_2019)
+tar_load(hh_r_silc_2020)
+tar_load(hh_r_silc_2021)
+tar_load(hh_r_silc_2022)
+
+hh_r_silc_2018 <- hh_r_silc_2018 |> 
+    mutate(year = 2018) |> select_countries() |> 
+    calculate_precarity() |> 
+    add_quantiles()
+hh_r_silc_2019 <- hh_r_silc_2019 |> 
+    mutate(year = 2019) |> select_countries() |> 
+    calculate_precarity() |> 
+    add_quantiles()
+hh_r_silc_2020 <- hh_r_silc_2020 |> 
+    mutate(year = 2020) |> select_countries() |> 
+    calculate_precarity() |> 
+    add_quantiles()
+hh_r_silc_2021 <- hh_r_silc_2021 |> 
+    mutate(year = 2021) |> select_countries() |> 
+    calculate_precarity() |> 
+    add_quantiles()
+hh_r_silc_2022 <- hh_r_silc_2022 |> 
+    mutate(year = 2022) |> select_countries() |> 
+    calculate_precarity() |> 
+    add_quantiles()
+hh_r_silc_2023 <- hh_r_silc_2023 |> 
+    mutate(year = 2023) |> 
+    calculate_precarity()
+
+hh_all_silc <- bind_rows(
+    hh_r_silc_2018,
+    hh_r_silc_2019,
+    hh_r_silc_2020,
+    hh_r_silc_2021,
+    hh_r_silc_2022,
+    hh_r_silc_2023
+) |> 
+    filter(!is.na(precarity_level))
+
+```
+
+### Celá populace
+```{r}
+population_stats <- hh_all_silc |> 
+    group_by(country, year) |>
+    mutate(
+        housing_to_income_before_ha = total_housing_cost / (income_disposable_wo_hb / 12) ,
+        housing_to_income_after_ha = (total_housing_cost - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |> 
+    summarise(
+      `% receiving benefits` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100,
+      `mean benefit amount (population)` = wtd.mean(allowance_housing, weights = hh_cross_weight),
+      `median housing cost-to-income ratio before HA (%, population)` = wtd.quantile(housing_to_income_before_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `median housing cost-to-income ratio after HA (%, population)` = wtd.quantile(housing_to_income_after_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100
+    ) |> 
+    mutate(
+      `median housing cost-to-income (diff before - after HA)` = `median housing cost-to-income ratio before HA (%, population)` - `median housing cost-to-income ratio after HA (%, population)`
+    )
+
+```
+
+
+```{r}
+ggplot(population_stats,
+       aes(x = year,
+           y = `% receiving benefits`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households receiving housing allowances over time",
+      x = "Year",
+      y = "% of households receiving housing allowances"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    guides(color = "none") + 
+    scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100))
+
+```
+
+```{r}
+ggplot(population_stats,
+       aes(x = year,
+           y = `mean benefit amount (population)`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Mean housing allowance amount over time",
+      x = "Year",
+      y = "Mean housing allowance amount (EUR/year)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    guides(color = "none")
+```
+
+```{r}
+ggplot(population_stats,
+       aes(x = year,
+           y = `% HH in precarity`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households in housing precarity over time",
+      x = "Year",
+      y = "% of households"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+    guides(color = "none")
+```
+
+```{r}
+ggplot(population_stats,
+       aes(x = year,
+           y = `median housing cost-to-income (diff before - after HA)`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Difference in median housing cost-to-income ratio before and after housing allowance over time",
+      x = "Year",
+      y = "difference (percentage points)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    # scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+    guides(color = "none")
+```
+
+```{r}
+population_stats |> 
+    kable(digits = 2, caption = "Housing allowance statistics over time")
+```
+
+### Recipients of housing allowances
+```{r}
+recipients_stats <- hh_all_silc |> 
+    group_by(country, year) |>
+    filter(allowance_housing > 0) |>
+    mutate(
+        housing_to_income_before_ha = total_housing_cost / (income_disposable_wo_hb / 12) ,
+        housing_to_income_after_ha = (total_housing_cost - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |> 
+    summarise(
+      `% receiving benefits` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100,
+      `mean benefit amount (population)` = wtd.mean(allowance_housing, weights = hh_cross_weight),
+      `median housing cost-to-income ratio before HA (%, population)` = wtd.quantile(housing_to_income_before_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `median housing cost-to-income ratio after HA (%, population)` = wtd.quantile(housing_to_income_after_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100
+    ) |> 
+    mutate(
+      `median housing cost-to-income (diff before - after HA)` = `median housing cost-to-income ratio before HA (%, population)` - `median housing cost-to-income ratio after HA (%, population)`
+    )
+
+```
+
+```{r}
+ggplot(recipients_stats,
+       aes(x = year,
+           y = `mean benefit amount (population)`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Mean housing allowance amount over time",
+      x = "Year",
+      y = "Mean housing allowance amount (EUR/year)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    guides(color = "none")
+```
+
+```{r}
+ggplot(recipients_stats,
+       aes(x = year,
+           y = `% HH in precarity`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households in housing precarity over time",
+      x = "Year",
+      y = "% of households"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+    guides(color = "none")
+```
+
+```{r}
+ggplot(recipients_stats,
+       aes(x = year,
+           y = `median housing cost-to-income (diff before - after HA)`,
+           group = country)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Difference in median housing cost-to-income ratio before and after housing allowance over time",
+      x = "Year",
+      y = "difference (percentage points)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() 
+    # scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100))
+```
+
+```{r}
+recipients_stats |> 
+    kable(digits = 2, caption = "Housing allowance statistics over time")
+```
+
+## by quantile (equivalised disposable income without housing benefits)
+### Celá populace
+```{r}
+population_stats_q <- hh_all_silc |> 
+    filter(!is.na(income_disposable_quantile_wo_hb)) |>
+    group_by(country, income_disposable_quantile_wo_hb, year) |>
+    mutate(
+        housing_to_income_before_ha = total_housing_cost / (income_disposable_wo_hb / 12) ,
+        housing_to_income_after_ha = (total_housing_cost - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |> 
+    summarise(
+      `% receiving benefits` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100,
+      `mean benefit amount (population)` = wtd.mean(allowance_housing, weights = hh_cross_weight),
+      `median housing cost-to-income ratio before HA (%, population)` = wtd.quantile(housing_to_income_before_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `median housing cost-to-income ratio after HA (%, population)` = wtd.quantile(housing_to_income_after_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100
+    ) |> 
+    mutate(
+      `median housing cost-to-income (diff before - after HA)` = `median housing cost-to-income ratio before HA (%, population)` - `median housing cost-to-income ratio after HA (%, population)`
+    )
+```
+
+```{r}
+ggplot(population_stats_q,
+       aes(x = year,
+           y = `% receiving benefits`,
+           group = income_disposable_quantile_wo_hb,
+           color = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households receiving housing allowances over time by income quantile",
+      x = "Year",
+      y = "% of households receiving housing allowances",
+      color = "Income quantile"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    theme(legend.position = "top")
+```
+
+
+```{r}
+ggplot(population_stats_q,
+       aes(x = year,
+           y = `mean benefit amount (population)`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Mean housing allowance amount over time",
+      x = "Year",
+      y = "Mean housing allowance amount (EUR/year)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    theme(legend.position = "top")
+```
+
+```{r}
+ggplot(population_stats_q,
+       aes(x = year,
+           y = `% HH in precarity`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households in housing precarity over time",
+      x = "Year",
+      y = "% of households"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) + 
+    theme(legend.position = "top")
+```
+
+```{r}
+ggplot(population_stats_q,
+       aes(x = year,
+           y = `median housing cost-to-income (diff before - after HA)`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Difference in median housing cost-to-income ratio before and after housing allowance over time",
+      x = "Year",
+      y = "difference (percentage points)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    # scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+    theme(legend.position = "top")
+```
+
+```{r}
+population_stats_q |> 
+    kable(digits = 2, caption = "Housing allowance statistics over time by income quantile (whole population)")
+```
+
+### Recipients of housing allowances
+```{r}
+recipients_stats_q <- hh_all_silc |> 
+    filter(!is.na(income_disposable_quantile_wo_hb)) |>
+    filter(allowance_housing > 0) |>
+    group_by(country, income_disposable_quantile_wo_hb, year) |>
+    mutate(
+        housing_to_income_before_ha = total_housing_cost / (income_disposable_wo_hb / 12) ,
+        housing_to_income_after_ha = (total_housing_cost - (allowance_housing / 12)) / (income_disposable_wo_hb / 12)
+    ) |> 
+    summarise(
+      `% receiving benefits` = wtd.mean(allowance_housing > 0, weights = hh_cross_weight) * 100,
+      `mean benefit amount (population)` = wtd.mean(allowance_housing, weights = hh_cross_weight),
+      `median housing cost-to-income ratio before HA (%, population)` = wtd.quantile(housing_to_income_before_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `median housing cost-to-income ratio after HA (%, population)` = wtd.quantile(housing_to_income_after_ha, probs = 0.5, weights = hh_cross_weight) * 100,
+      `% HH in precarity` = wtd.mean(precarity_level >= 1, weights = hh_cross_weight) * 100
+    ) |> 
+    mutate(
+      `median housing cost-to-income (diff before - after HA)` = `median housing cost-to-income ratio before HA (%, population)` - `median housing cost-to-income ratio after HA (%, population)`
+    )
+```
+
+```{r}
+ggplot(recipients_stats_q,
+       aes(x = year,
+           y = `mean benefit amount (population)`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Mean housing allowance amount over time",
+      x = "Year",
+      y = "Mean housing allowance amount (EUR/year)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    theme(legend.position = "top")
+```
+
+```{r}
+ggplot(recipients_stats_q,
+       aes(x = year,
+           y = `% HH in precarity`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "% of households in housing precarity over time",
+      x = "Year",
+      y = "% of households"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100)) +
+    theme(legend.position = "top")
+```
+
+```{r}
+ggplot(recipients_stats_q,
+       aes(x = year,
+           y = `median housing cost-to-income (diff before - after HA)`,
+           group = income_disposable_quantile_wo_hb, 
+           colour = income_disposable_quantile_wo_hb)) +
+    geom_line() +
+    geom_point() +
+    labs(
+      title = "Difference in median housing cost-to-income ratio before and after housing allowance over time",
+      x = "Year",
+      y = "difference (percentage points)"
+    ) +
+    facet_wrap(~country) +
+    theme_minimal() + 
+    theme(legend.position = "top")
+    # scale_y_continuous(labels = scales::percent_format(scale = 1), limits = c(0, 100))
+```
+
+
+```{r}
+recipients_stats_q |> 
+    kable(digits = 2, caption = "Housing allowance statistics over time (recipients only)")
+```

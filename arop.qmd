@@ -4,6 +4,7 @@ format:
   html:
     code-fold: true
     code-summary: "Show the code"
+    self-contained: true
 ---
 
 ```{r setup, include=FALSE}
@@ -26,6 +27,7 @@ library(paqr)
 library(dplyr)
 library(corrr)
 library(Hmisc)
+library(knitr)
 library(haven)
 library(readxl)
 library(eulerr)
@@ -269,6 +271,22 @@ eu_arop_2023 <- hh_r_silc_2023_arop %>%
 eu_arop_2023 %>% 
   arrange(pct_under_arop) %>% 
   knitr::kable(., digits = 2, col.names = c("Country", "% under EU AROP", "% under 50% of EU median"))
+```
+
+```{r}
+hh_r_silc_2023_arop |> 
+  filter(urbanisation == 3) |> 
+  group_by(country) %>% 
+  summarise(
+    pct_under_arop = wtd.mean(under_arop, hh_cross_weight, na.rm = TRUE) * 100, 
+    pct_under_eu_poverty = wtd.mean(under_eu_poverty, hh_cross_weight, na.rm = TRUE) * 100) |> 
+  filter(country == "Česko")
+
+hh_r_silc_2023_arop |> 
+  filter(urbanisation == 3) |> 
+  summarise(
+    pct_under_arop = wtd.mean(under_arop, hh_cross_weight, na.rm = TRUE) * 100, 
+    pct_under_eu_poverty = wtd.mean(under_eu_poverty, hh_cross_weight, na.rm = TRUE) * 100)
 ```
 
 ```{r}
@@ -697,6 +715,19 @@ arope_split_countries2 <- arope_split2 |>
 arope_split2 |> 
   bind_rows(eu_arope_split2) |> 
   filter(type != "není v AROPE") |> 
+  group_by(country) |> 
+  summarise(pct = sum(pct)) |>
+  ungroup() |> 
+  mutate(pct = pct * 100) |> 
+  mutate(country = factor(country, levels = rev(c(as.character(arope_split_countries2), "EU")))) |>
+  arrange(country) |> 
+  knitr::kable(digits = 1, col.names = c("Country", "% of households in EU AROPE"))
+```
+
+```{r}
+arope_split2 |> 
+  bind_rows(eu_arope_split2) |> 
+  filter(type != "není v AROPE") |> 
   mutate(country = factor(country, levels = c(as.character(arope_split_countries2), "EU"))) |> 
   ggplot(aes(x = country, y = pct, fill = type)) + 
   geom_bar(stat = "identity") + 
@@ -1067,6 +1098,16 @@ aropes3 |>
 save_plot(last_plot(), "figs/arop/new_arope_composition.png", height_px = 640)
 save_plot(last_plot(), "figs/arop/new_arope_composition.svg", height_px = 640)
 
+```
+
+```{r}
+full_join(
+  aropes3, 
+  aropes3b |> 
+  pivot_wider(names_from = indicator, values_from = pct), by = "country") |> 
+  rename(`Země` = country, 
+         `Pod 50 % evropského mediánu nebo v materiální/sociální deprivaci` = pct_eu_arope) |>
+  kable(digits = 2)
 ```
 
 ```{r}
@@ -2201,5 +2242,5 @@ healthy_years <- tribble(
 )
 
 full_join(eu_national_arop, healthy_years, by = "country") |> 
-  correlate() |> View()
+  correlate()
 ```

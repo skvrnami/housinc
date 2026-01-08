@@ -83,37 +83,37 @@
 <circle cx='192.63' cy='347.49' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='166.93' cy='335.73' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='206.02' cy='289.39' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='176.89' y1='298.42' x2='185.61' y2='293.87' style='stroke-width: 1.07;' />
-<line x1='203.26' y1='313.44' x2='194.99' y2='313.20' style='stroke-width: 1.07;' />
-<line x1='203.32' y1='281.37' x2='195.18' y2='286.50' style='stroke-width: 1.07;' />
-<line x1='171.33' y1='327.60' x2='167.41' y2='334.83' style='stroke-width: 1.07;' />
-<text x='273.56' y='54.91' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Bulharsko</text>
-<text x='173.13' y='281.03' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.57px' lengthAdjust='spacingAndGlyphs'>Maďarsko</text>
-<text x='115.75' y='281.07' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='50.89px' lengthAdjust='spacingAndGlyphs'>Slovensko</text>
-<text x='250.32' y='233.29' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Řecko</text>
-<text x='271.58' y='392.08' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='52.72px' lengthAdjust='spacingAndGlyphs'>Rumunsko</text>
-<text x='240.14' y='256.93' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='55.79px' lengthAdjust='spacingAndGlyphs'>Chorvatsko</text>
-<text x='289.15' y='260.97' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='43.53px' lengthAdjust='spacingAndGlyphs'>Lotyšsko</text>
-<text x='258.28' y='272.06' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Litva</text>
-<text x='154.07' y='265.84' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='58.25px' lengthAdjust='spacingAndGlyphs'>Portugalsko</text>
-<text x='278.37' y='296.42' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='45.37px' lengthAdjust='spacingAndGlyphs'>Estonsko</text>
-<text x='177.22' y='365.89' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='33.11px' lengthAdjust='spacingAndGlyphs'>Polsko</text>
-<text x='94.62' y='313.44' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Česko</text>
-<text x='218.68' y='343.76' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='26.97px' lengthAdjust='spacingAndGlyphs'>Malta</text>
-<text x='144.83' y='346.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='22.68px' lengthAdjust='spacingAndGlyphs'>Kypr</text>
-<text x='280.35' y='317.14' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='51.51px' lengthAdjust='spacingAndGlyphs'>Španělsko</text>
-<text x='118.09' y='328.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='47.20px' lengthAdjust='spacingAndGlyphs'>Slovinsko</text>
-<text x='215.14' y='366.74' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Itálie</text>
-<text x='156.70' y='302.79' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='36.78px' lengthAdjust='spacingAndGlyphs'>Francie</text>
-<text x='190.34' y='241.82' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='46.58px' lengthAdjust='spacingAndGlyphs'>Německo</text>
-<text x='226.22' y='317.39' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='42.31px' lengthAdjust='spacingAndGlyphs'>Švédsko</text>
-<text x='223.82' y='284.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='37.40px' lengthAdjust='spacingAndGlyphs'>Dánsko</text>
-<text x='157.99' y='402.34' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='30.66px' lengthAdjust='spacingAndGlyphs'>Belgie</text>
-<text x='198.82' y='386.31' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='60.06px' lengthAdjust='spacingAndGlyphs'>Nizozemsko</text>
-<text x='137.22' y='361.85' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='32.49px' lengthAdjust='spacingAndGlyphs'>Finsko</text>
-<text x='185.99' y='342.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.90px' lengthAdjust='spacingAndGlyphs'>Irsko</text>
-<text x='173.39' y='325.80' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Rakousko</text>
-<text x='215.39' y='302.10' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='66.21px' lengthAdjust='spacingAndGlyphs'>Lucembursko</text>
+<line x1='176.76' y1='298.42' x2='185.61' y2='293.86' style='stroke-width: 1.07;' />
+<line x1='203.30' y1='313.44' x2='194.99' y2='313.20' style='stroke-width: 1.07;' />
+<line x1='203.30' y1='281.37' x2='195.18' y2='286.50' style='stroke-width: 1.07;' />
+<line x1='171.32' y1='327.60' x2='167.41' y2='334.83' style='stroke-width: 1.07;' />
+<text x='273.50' y='54.88' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Bulharsko</text>
+<text x='173.12' y='281.08' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.57px' lengthAdjust='spacingAndGlyphs'>Maďarsko</text>
+<text x='115.07' y='286.50' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='50.89px' lengthAdjust='spacingAndGlyphs'>Slovensko</text>
+<text x='250.19' y='233.41' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Řecko</text>
+<text x='271.58' y='392.05' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='52.72px' lengthAdjust='spacingAndGlyphs'>Rumunsko</text>
+<text x='240.14' y='256.95' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='55.79px' lengthAdjust='spacingAndGlyphs'>Chorvatsko</text>
+<text x='289.15' y='260.98' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='43.53px' lengthAdjust='spacingAndGlyphs'>Lotyšsko</text>
+<text x='258.29' y='272.07' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Litva</text>
+<text x='154.02' y='265.88' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='58.25px' lengthAdjust='spacingAndGlyphs'>Portugalsko</text>
+<text x='278.23' y='296.43' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='45.37px' lengthAdjust='spacingAndGlyphs'>Estonsko</text>
+<text x='177.23' y='365.89' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='33.11px' lengthAdjust='spacingAndGlyphs'>Polsko</text>
+<text x='94.56' y='313.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Česko</text>
+<text x='218.85' y='343.76' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='26.97px' lengthAdjust='spacingAndGlyphs'>Malta</text>
+<text x='144.87' y='346.66' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='22.68px' lengthAdjust='spacingAndGlyphs'>Kypr</text>
+<text x='280.31' y='317.18' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='51.51px' lengthAdjust='spacingAndGlyphs'>Španělsko</text>
+<text x='118.03' y='329.11' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='47.20px' lengthAdjust='spacingAndGlyphs'>Slovinsko</text>
+<text x='215.17' y='366.72' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Itálie</text>
+<text x='156.57' y='302.78' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='36.78px' lengthAdjust='spacingAndGlyphs'>Francie</text>
+<text x='190.39' y='241.85' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='46.58px' lengthAdjust='spacingAndGlyphs'>Německo</text>
+<text x='226.25' y='317.40' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='42.31px' lengthAdjust='spacingAndGlyphs'>Švédsko</text>
+<text x='223.80' y='284.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='37.40px' lengthAdjust='spacingAndGlyphs'>Dánsko</text>
+<text x='158.01' y='402.28' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='30.66px' lengthAdjust='spacingAndGlyphs'>Belgie</text>
+<text x='198.83' y='386.32' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='60.06px' lengthAdjust='spacingAndGlyphs'>Nizozemsko</text>
+<text x='137.21' y='361.88' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='32.49px' lengthAdjust='spacingAndGlyphs'>Finsko</text>
+<text x='186.23' y='342.79' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.90px' lengthAdjust='spacingAndGlyphs'>Irsko</text>
+<text x='173.38' y='325.80' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Rakousko</text>
+<text x='215.26' y='302.09' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='66.21px' lengthAdjust='spacingAndGlyphs'>Lucembursko</text>
 <polyline points='100.99,351.20 103.54,349.92 106.09,348.64 108.64,347.36 111.18,346.08 113.73,344.79 116.28,343.51 118.83,342.23 121.38,340.95 123.93,339.67 126.48,338.39 129.02,337.11 131.57,335.83 134.12,334.55 136.67,333.27 139.22,331.99 141.77,330.71 144.32,329.43 146.86,328.15 149.41,326.87 151.96,325.59 154.51,324.31 157.06,323.03 159.61,321.75 162.16,320.47 164.70,319.19 167.25,317.91 169.80,316.63 172.35,315.35 174.90,314.06 177.45,312.78 180.00,311.50 182.54,310.22 185.09,308.94 187.64,307.66 190.19,306.38 192.74,305.10 195.29,303.82 197.84,302.54 200.38,301.26 202.93,299.98 205.48,298.70 208.03,297.42 210.58,296.14 213.13,294.86 215.68,293.58 218.22,292.30 220.77,291.02 223.32,289.74 225.87,288.46 228.42,287.18 230.97,285.90 233.52,284.62 236.06,283.34 238.61,282.05 241.16,280.77 243.71,279.49 246.26,278.21 248.81,276.93 251.36,275.65 253.90,274.37 256.45,273.09 259.00,271.81 261.55,270.53 264.10,269.25 266.65,267.97 269.20,266.69 271.74,265.41 274.29,264.13 276.84,262.85 279.39,261.57 281.94,260.29 284.49,259.01 287.04,257.73 289.59,256.45 292.13,255.17 294.68,253.89 297.23,252.61 299.78,251.32 302.33,250.04 ' style='stroke-width: 2.13; stroke: #3366FF; stroke-linecap: butt;' />
 <text x='62.08' y='63.18' style='font-size: 11.04px; font-family: "Arial";' textLength='3.67px' lengthAdjust='spacingAndGlyphs'>r</text>
 <text x='65.75' y='60.01' style='font-size: 8.83px; font-family: "Arial";' textLength='4.91px' lengthAdjust='spacingAndGlyphs'>2</text>
@@ -183,38 +183,38 @@
 <circle cx='397.16' cy='347.49' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='390.40' cy='335.73' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
 <circle cx='373.00' cy='289.39' r='1.95' style='stroke-width: 0.71; fill: #000000;' />
-<line x1='486.95' y1='280.98' x2='498.09' y2='283.62' style='stroke-width: 1.07;' />
-<line x1='474.87' y1='309.60' x2='454.02' y2='304.95' style='stroke-width: 1.07;' />
-<line x1='425.46' y1='313.43' x2='409.19' y2='313.19' style='stroke-width: 1.07;' />
-<line x1='387.09' y1='359.30' x2='391.76' y2='352.23' style='stroke-width: 1.07;' />
-<line x1='388.93' y1='312.29' x2='390.33' y2='334.62' style='stroke-width: 1.07;' />
-<text x='588.03' y='63.59' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Bulharsko</text>
-<text x='575.14' y='302.77' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.57px' lengthAdjust='spacingAndGlyphs'>Maďarsko</text>
-<text x='517.72' y='298.41' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='50.89px' lengthAdjust='spacingAndGlyphs'>Slovensko</text>
-<text x='553.24' y='233.36' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Řecko</text>
-<text x='581.46' y='400.73' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='52.72px' lengthAdjust='spacingAndGlyphs'>Rumunsko</text>
-<text x='473.38' y='269.77' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='55.79px' lengthAdjust='spacingAndGlyphs'>Chorvatsko</text>
-<text x='539.91' y='260.10' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='43.53px' lengthAdjust='spacingAndGlyphs'>Lotyšsko</text>
-<text x='529.27' y='274.50' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Litva</text>
-<text x='481.88' y='253.38' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='58.25px' lengthAdjust='spacingAndGlyphs'>Portugalsko</text>
-<text x='462.47' y='284.90' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='45.37px' lengthAdjust='spacingAndGlyphs'>Estonsko</text>
-<text x='451.06' y='348.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='33.11px' lengthAdjust='spacingAndGlyphs'>Polsko</text>
-<text x='404.29' y='311.57' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Česko</text>
-<text x='438.40' y='332.57' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='26.97px' lengthAdjust='spacingAndGlyphs'>Malta</text>
-<text x='406.40' y='342.80' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='22.68px' lengthAdjust='spacingAndGlyphs'>Kypr</text>
-<text x='502.43' y='313.63' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='51.51px' lengthAdjust='spacingAndGlyphs'>Španělsko</text>
-<text x='388.01' y='325.62' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='47.20px' lengthAdjust='spacingAndGlyphs'>Slovinsko</text>
-<text x='439.51' y='366.76' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Itálie</text>
-<text x='445.41' y='300.01' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='36.78px' lengthAdjust='spacingAndGlyphs'>Francie</text>
-<text x='414.15' y='261.28' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='46.58px' lengthAdjust='spacingAndGlyphs'>Německo</text>
-<text x='448.42' y='317.38' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='42.31px' lengthAdjust='spacingAndGlyphs'>Švédsko</text>
-<text x='408.74' y='281.04' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='37.40px' lengthAdjust='spacingAndGlyphs'>Dánsko</text>
-<text x='406.45' y='402.30' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='30.66px' lengthAdjust='spacingAndGlyphs'>Belgie</text>
-<text x='430.35' y='384.97' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='60.06px' lengthAdjust='spacingAndGlyphs'>Nizozemsko</text>
+<line x1='487.02' y1='280.93' x2='498.10' y2='283.61' style='stroke-width: 1.07;' />
+<line x1='474.84' y1='309.66' x2='454.02' y2='304.95' style='stroke-width: 1.07;' />
+<line x1='425.36' y1='313.49' x2='409.19' y2='313.19' style='stroke-width: 1.07;' />
+<line x1='387.08' y1='359.31' x2='391.76' y2='352.23' style='stroke-width: 1.07;' />
+<line x1='388.93' y1='313.05' x2='390.33' y2='334.62' style='stroke-width: 1.07;' />
+<text x='588.03' y='63.60' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Bulharsko</text>
+<text x='575.12' y='302.78' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.57px' lengthAdjust='spacingAndGlyphs'>Maďarsko</text>
+<text x='517.72' y='298.57' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='50.89px' lengthAdjust='spacingAndGlyphs'>Slovensko</text>
+<text x='553.24' y='233.43' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Řecko</text>
+<text x='594.33' y='383.28' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='52.72px' lengthAdjust='spacingAndGlyphs'>Rumunsko</text>
+<text x='473.46' y='269.80' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='55.79px' lengthAdjust='spacingAndGlyphs'>Chorvatsko</text>
+<text x='539.95' y='260.14' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='43.53px' lengthAdjust='spacingAndGlyphs'>Lotyšsko</text>
+<text x='529.27' y='274.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Litva</text>
+<text x='481.89' y='253.46' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='58.25px' lengthAdjust='spacingAndGlyphs'>Portugalsko</text>
+<text x='462.53' y='284.84' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='45.37px' lengthAdjust='spacingAndGlyphs'>Estonsko</text>
+<text x='451.02' y='348.51' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='33.11px' lengthAdjust='spacingAndGlyphs'>Polsko</text>
+<text x='404.28' y='311.56' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='31.26px' lengthAdjust='spacingAndGlyphs'>Česko</text>
+<text x='438.41' y='332.55' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='26.97px' lengthAdjust='spacingAndGlyphs'>Malta</text>
+<text x='406.42' y='342.76' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='22.68px' lengthAdjust='spacingAndGlyphs'>Kypr</text>
+<text x='502.39' y='313.68' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='51.51px' lengthAdjust='spacingAndGlyphs'>Španělsko</text>
+<text x='388.01' y='326.27' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='47.20px' lengthAdjust='spacingAndGlyphs'>Slovinsko</text>
+<text x='439.48' y='366.74' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.30px' lengthAdjust='spacingAndGlyphs'>Itálie</text>
+<text x='445.31' y='300.02' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='36.78px' lengthAdjust='spacingAndGlyphs'>Francie</text>
+<text x='414.10' y='261.25' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='46.58px' lengthAdjust='spacingAndGlyphs'>Německo</text>
+<text x='448.32' y='317.44' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='42.31px' lengthAdjust='spacingAndGlyphs'>Švédsko</text>
+<text x='408.91' y='281.00' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='37.40px' lengthAdjust='spacingAndGlyphs'>Dánsko</text>
+<text x='406.47' y='402.31' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='30.66px' lengthAdjust='spacingAndGlyphs'>Belgie</text>
+<text x='430.36' y='384.98' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='60.06px' lengthAdjust='spacingAndGlyphs'>Nizozemsko</text>
 <text x='380.65' y='369.02' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='32.49px' lengthAdjust='spacingAndGlyphs'>Finsko</text>
-<text x='408.69' y='360.11' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.90px' lengthAdjust='spacingAndGlyphs'>Irsko</text>
-<text x='388.93' y='310.49' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Rakousko</text>
-<text x='397.51' y='296.14' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='66.21px' lengthAdjust='spacingAndGlyphs'>Lucembursko</text>
+<text x='408.69' y='360.12' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='23.90px' lengthAdjust='spacingAndGlyphs'>Irsko</text>
+<text x='388.93' y='311.25' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='49.05px' lengthAdjust='spacingAndGlyphs'>Rakousko</text>
+<text x='397.51' y='296.03' text-anchor='middle' style='font-size: 11.04px; font-family: "Arial";' textLength='66.21px' lengthAdjust='spacingAndGlyphs'>Lucembursko</text>
 <polyline points='373.00,343.96 376.09,342.38 379.17,340.79 382.26,339.20 385.35,337.62 388.43,336.03 391.52,334.45 394.61,332.86 397.69,331.27 400.78,329.69 403.87,328.10 406.95,326.52 410.04,324.93 413.13,323.34 416.21,321.76 419.30,320.17 422.39,318.59 425.47,317.00 428.56,315.41 431.65,313.83 434.73,312.24 437.82,310.66 440.91,309.07 443.99,307.48 447.08,305.90 450.17,304.31 453.25,302.72 456.34,301.14 459.43,299.55 462.51,297.97 465.60,296.38 468.69,294.79 471.77,293.21 474.86,291.62 477.95,290.04 481.03,288.45 484.12,286.86 487.21,285.28 490.29,283.69 493.38,282.11 496.47,280.52 499.55,278.93 502.64,277.35 505.73,275.76 508.81,274.18 511.90,272.59 514.99,271.00 518.07,269.42 521.16,267.83 524.25,266.25 527.33,264.66 530.42,263.07 533.51,261.49 536.59,259.90 539.68,258.32 542.77,256.73 545.85,255.14 548.94,253.56 552.03,251.97 555.11,250.39 558.20,248.80 561.29,247.21 564.37,245.63 567.46,244.04 570.55,242.46 573.63,240.87 576.72,239.28 579.81,237.70 582.89,236.11 585.98,234.53 589.07,232.94 592.15,231.35 595.24,229.77 598.33,228.18 601.42,226.60 604.50,225.01 607.59,223.42 610.68,221.84 613.76,220.25 616.85,218.66 ' style='stroke-width: 2.13; stroke: #3366FF; stroke-linecap: butt;' />
 <text x='376.60' y='63.18' style='font-size: 11.04px; font-family: "Arial";' textLength='3.67px' lengthAdjust='spacingAndGlyphs'>r</text>
 <text x='380.27' y='60.01' style='font-size: 8.83px; font-family: "Arial";' textLength='4.91px' lengthAdjust='spacingAndGlyphs'>2</text>

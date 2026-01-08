@@ -39,6 +39,7 @@ list(
       year = "HB010",
       country = "HB020",
       hh_id = "HB030",
+      hh_type = "HB110",
       month_interview = "HB050",
       year_interview = "HB060",
       dwelling_type = "HH010",
@@ -59,6 +60,7 @@ list(
       allowance_family = "HY050N",
       allowance_social = "HY060N",
       allowance_housing = "HY070N",
+      allowance_housing_gross = "HY070G",
       income_capital = "HY090N",
       tenure_status = "HH021",
       arrears_mortgage_rent = "HS011",
@@ -105,6 +107,7 @@ list(
     c("hh_cross_weight", "income_gross",
       "income_disposable", "allowance_family",
       "allowance_social", "allowance_housing",
+      "allowance_housing_gross",
       "arrears_mortgage_rent", "arrears_utility",
       "reduced_utility_cost", "arrears_other",
       "capacity_to_face_expenses", "ability_to_make_ends",
@@ -1623,6 +1626,36 @@ list(
   ),
 
   tar_target(
+    affordability_table, {
+      all_silc_households_precarity %>%
+        filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+        select(
+          country, year, mean_housing_overburden, 
+          mean_housing_overburden_wo_hb, 
+          mean_housing_overburden_wo_hb_gross, 
+          mean_housing_overburden_eurostat, 
+          mean_housing_overburden_eurostat_gross
+        )
+    }
+  ),
+
+  tar_target(
+    affordability_table_excel, {
+      affordability_table %>%
+        pivot_wider(
+          names_from = country, 
+          values_from = c(
+            mean_housing_overburden, 
+            mean_housing_overburden_wo_hb, 
+            mean_housing_overburden_wo_hb_gross,
+            mean_housing_overburden_eurostat, 
+            mean_housing_overburden_eurostat_gross
+          )) %>%
+        writexl::write_xlsx(., "paper/tabs/affordability_comparison.xlsx")
+    }
+  ),
+
+  tar_target(
     chart_affordability_eurostat_file,
     ggsave("paper/figs/fig_dim_affordability_eurostat.png", chart_affordability_eurostat,
            width = 8, height = 6, bg = "white"), 
@@ -1763,7 +1796,20 @@ list(
           mean_arrears_mortgage_rent = "Arrears on mortgage/rent",
           mean_arrears_utility = "Arrears on utilities"
         )) %>% 
-        mutate(dimension = factor(dimension, levels = c("Housing insecurity", "Arrears on mortgage/rent", "Arrears on utilities"))) %>%
+        mutate(
+          dimension = factor(dimension, levels = c("Housing insecurity", "Arrears on mortgage/rent", "Arrears on utilities")),
+          country = case_when(
+            country == "CZ" ~ "Czechia",
+            country == "FI" ~ "Finland",
+            country == "RO" ~ "Romania",
+            country == "IT" ~ "Italy",
+            country == "NL" ~ "Netherlands",
+            country == "BE" ~ "Belgium",
+            country == "DE" ~ "Germany",
+            country == "EE" ~ "Estonia",
+            TRUE ~ country
+          )
+        ) %>%
         ggplot(., aes(x = year, y = mean_dim_insecurity, colour = dimension)) +
         geom_line() +
         geom_point(size = 0.7) +
@@ -1774,6 +1820,11 @@ list(
              x = "", y = "", colour = "") +
         scale_y_continuous(labels = scales::label_percent(scale = 1),
                            limits = c(0, NA)) + 
+        scale_colour_manual(values = c(
+          "#51737B",
+          "#971A8D",
+          "#8DC242"
+        )) + 
         theme(legend.position = "top")
     }
   ),
@@ -1812,6 +1863,19 @@ list(
     chart_quality_selected_countries,
     all_silc_households_precarity %>%
       filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE")) %>%
+      mutate(
+        country = case_when(
+          country == "CZ" ~ "Czechia",
+          country == "FI" ~ "Finland",
+          country == "RO" ~ "Romania",
+          country == "IT" ~ "Italy",
+          country == "NL" ~ "Netherlands",
+          country == "BE" ~ "Belgium",
+          country == "DE" ~ "Germany",
+          country == "EE" ~ "Estonia",
+          TRUE ~ country
+        )
+      ) %>%
       ggplot(., aes(x = year, y = mean_dim_quality)) +
       geom_line() +
       geom_point(size = 0.7) +
@@ -1882,6 +1946,19 @@ tar_target(
       filter(country %in% c("CZ", "FI", "RO", "IT", "NL", "BE", "DE", "EE"))
       
       data |> 
+        mutate(
+          country = case_when(
+            country == "CZ" ~ "Czechia",
+            country == "FI" ~ "Finland",
+            country == "RO" ~ "Romania",
+            country == "IT" ~ "Italy",
+            country == "NL" ~ "Netherlands",
+            country == "BE" ~ "Belgium",
+            country == "DE" ~ "Germany",
+            country == "EE" ~ "Estonia",
+            TRUE ~ country
+          )
+        ) %>%
         select(country, year, mean_dim_quality, mean_overcrowded_eu, mean_ability_to_keep_warm) %>%
         tidyr::pivot_longer(
           cols = c(mean_dim_quality, mean_overcrowded_eu, mean_ability_to_keep_warm),
@@ -1904,7 +1981,14 @@ tar_target(
            x = "", y = "", colour = "") +
         scale_y_continuous(labels = scales::label_percent(scale = 1),
                          limits = c(0, NA)) + 
-        theme(legend.position = "top")
+        theme(legend.position = "top") + 
+        scale_colour_manual(
+          values = c(
+            "#51737B",
+            "#971A8D",
+            "#8DC242"
+          )
+        )
         
       
     }
@@ -2047,15 +2131,29 @@ tar_target(
                      names_to = "dim_precarity",
                      values_to = "pct") %>%
         mutate(dim_precarity = gsub("dim3_", "", dim_precarity)) %>%
+        mutate(country = case_when(
+          country == "BE" ~ "Belgium",
+          country == "CZ" ~ "Czechia",
+          country == "DE" ~ "Germany",
+          country == "EE" ~ "Estonia",
+          country == "FI" ~ "Finland",
+          country == "IT" ~ "Italy",
+          country == "NL" ~ "Netherlands",
+          country == "RO" ~ "Romania"
+        )) %>% 
         ggplot(., aes(x = year, y = pct, fill = dim_precarity)) +
         geom_bar(stat = "identity") +
         scale_y_continuous(labels = scales::label_percent(scale = 1)) +
         facet_wrap(vars(country)) +
         theme_minimal() +
-        scale_fill_viridis_d() +
         labs(x = "Year", y = "% of households",
              fill = "Housing precarity dimensions") +
-        theme(legend.position = "top")
+        theme(legend.position = "top") + 
+        scale_fill_manual(values = c(
+          "#51737B",
+          "#971A8D",
+          "#8DC242",
+          "#88AAA5"))
     }
   ),
 
@@ -2724,10 +2822,10 @@ tar_target(
     "validations.Rmd"
   ),
 
-  tar_render(
-    arop_rmd,
-    "arop.Rmd"
-  ),
+  # tar_render(
+  #   arop_rmd,
+  #   "arop.qmd"
+  # ),
 
   NULL
 
