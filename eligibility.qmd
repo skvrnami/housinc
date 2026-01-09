@@ -70,7 +70,15 @@ calculate_dimensions <- function(df){
     )
 }
 
-
+PALETTE <- c(
+  "#51737B",
+  "#971A8D",
+  "#8DC242",
+  "#88AAA5",
+  "#EABDE7",
+  "#B8CC9E",
+  "#5B0F55"
+)
 ```
 
 ## Czechia
@@ -379,16 +387,16 @@ cz_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_a
     weights = weights, 
     data = m_data)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(cz_affordability)["McFadden"], 
-  x2 = pscl::pR2(cz_insecurity)["McFadden"],
-  x3 = pscl::pR2(cz_quality)["McFadden"],
-  x4 = pscl::pR2(cz_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(cz_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(cz_overcrowded)["McFadden"],
-  x7 = pscl::pR2(cz_warm)["McFadden"]
-)
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(cz_affordability)["McFadden"], 
+#   x2 = pscl::pR2(cz_insecurity)["McFadden"],
+#   x3 = pscl::pR2(cz_quality)["McFadden"],
+#   x4 = pscl::pR2(cz_arrears_mortgage_rent)["McFadden"],
+#   x5 = pscl::pR2(cz_arrears_utility)["McFadden"],
+#   x6 = pscl::pR2(cz_overcrowded)["McFadden"],
+#   x7 = pscl::pR2(cz_warm)["McFadden"]
+# )
 
 modelsummary::modelsummary(
   list(
@@ -429,7 +437,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "Disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2, 
+  # add_rows = pr2, 
   output = "paper/figs/cz_matching_summary.html"
 )
 ```
@@ -548,15 +556,36 @@ cz_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing + eligibility_
     weights = weights, 
     data = m_data_robust)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(cz_affordability2)["McFadden"], 
-  x2 = pscl::pR2(cz_insecurity2)["McFadden"],
-  x3 = pscl::pR2(cz_quality2)["McFadden"],
-  x4 = pscl::pR2(cz_arrears_mortgage_rent2)["McFadden"],
-  x5 = pscl::pR2(cz_arrears_utility2)["McFadden"],
-  x6 = pscl::pR2(cz_overcrowded2)["McFadden"],
-  x7 = pscl::pR2(cz_warm2)["McFadden"]
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(cz_affordability2)["McFadden"], 
+#   x2 = pscl::pR2(cz_insecurity2)["McFadden"],
+#   x3 = pscl::pR2(cz_quality2)["McFadden"],
+#   x4 = pscl::pR2(cz_arrears_mortgage_rent2)["McFadden"],
+#   x5 = pscl::pR2(cz_arrears_utility2)["McFadden"],
+#   x6 = pscl::pR2(cz_overcrowded2)["McFadden"],
+#   x7 = pscl::pR2(cz_warm2)["McFadden"]
+# )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = cz_affordability2, 
+    "Insecurity" = cz_insecurity2, 
+    "Poor quality" = cz_quality2, 
+    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent2, 
+    "Arrears on utilities" = cz_arrears_utility2, 
+    "Overcrowded" = cz_overcrowded2, 
+    "Unable to keep warm" = cz_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -577,28 +606,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
-)
-
-modelsummary::modelsummary(
-  list(
-    "Unaffordability" = cz_affordability2, 
-    "Insecurity" = cz_insecurity2, 
-    "Poor quality" = cz_quality2, 
-    "Arrears on mortgage/rent" = cz_arrears_mortgage_rent2, 
-    "Arrears on utilities" = cz_arrears_utility2, 
-    "Overcrowded" = cz_overcrowded2, 
-    "Unable to keep warm" = cz_warm2
-  ), 
-  stars = TRUE, 
-  fmt = 2,
-  coef_rename = c(
-    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2,
+  # add_rows = pr2,
   output = "paper/figs/cz_matching_summary_robust.html"
 )
 ```
@@ -887,15 +895,36 @@ nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
     weights = weights, 
     data = nl_m_data)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(nl_affordability)["McFadden"], 
-  x2 = pscl::pR2(nl_insecurity)["McFadden"],
-  x3 = pscl::pR2(nl_quality)["McFadden"],
-  x4 = pscl::pR2(nl_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(nl_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(nl_overcrowded)["McFadden"],
-  x7 = pscl::pR2(nl_warm)["McFadden"]
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(nl_affordability)["McFadden"], 
+#   x2 = pscl::pR2(nl_insecurity)["McFadden"],
+#   x3 = pscl::pR2(nl_quality)["McFadden"],
+#   x4 = pscl::pR2(nl_arrears_mortgage_rent)["McFadden"],
+#   x5 = pscl::pR2(nl_arrears_utility)["McFadden"],
+#   x6 = pscl::pR2(nl_overcrowded)["McFadden"],
+#   x7 = pscl::pR2(nl_warm)["McFadden"]
+# )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = nl_affordability, 
+    "Insecurity" = nl_insecurity, 
+    "Poor quality" = nl_quality, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
+    "Arrears on utilities" = nl_arrears_utility, 
+    "Overcrowded" = nl_overcrowded, 
+    "Unable to keep warm" = nl_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -916,28 +945,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
-)
-
-modelsummary::modelsummary(
-  list(
-    "Unaffordability" = nl_affordability, 
-    "Insecurity" = nl_insecurity, 
-    "Poor quality" = nl_quality, 
-    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent, 
-    "Arrears on utilities" = nl_arrears_utility, 
-    "Overcrowded" = nl_overcrowded, 
-    "Unable to keep warm" = nl_warm
-  ), 
-  stars = TRUE, 
-  fmt = 2,
-  coef_rename = c(
-    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2,
+  # add_rows = pr2,
   output = "paper/figs/nl_matching_summary.html"
 )
 ```
@@ -992,16 +1000,16 @@ nl_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing +
   weights = weights, 
   data = nl_m_data)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(nl_affordability)["McFadden"], 
-  x2 = pscl::pR2(nl_insecurity)["McFadden"],
-  x3 = pscl::pR2(nl_quality)["McFadden"],
-  x4 = pscl::pR2(nl_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(nl_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(nl_overcrowded)["McFadden"],
-  x7 = pscl::pR2(nl_warm)["McFadden"]
-)
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(nl_affordability)["McFadden"], 
+#   x2 = pscl::pR2(nl_insecurity)["McFadden"],
+#   x3 = pscl::pR2(nl_quality)["McFadden"],
+#   x4 = pscl::pR2(nl_arrears_mortgage_rent)["McFadden"],
+#   x5 = pscl::pR2(nl_arrears_utility)["McFadden"],
+#   x6 = pscl::pR2(nl_overcrowded)["McFadden"],
+#   x7 = pscl::pR2(nl_warm)["McFadden"]
+# )
 
 modelsummary::modelsummary(
   list(
@@ -1021,7 +1029,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
+  # add_rows = pr2
 )
 ```
 
@@ -1146,15 +1154,36 @@ nl_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing,
     weights = weights, 
     data = nl_m_data_robust)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(nl_affordability2)["McFadden"], 
-  x2 = pscl::pR2(nl_insecurity2)["McFadden"],
-  x3 = pscl::pR2(nl_quality2)["McFadden"],
-  x4 = pscl::pR2(nl_arrears_mortgage_rent2)["McFadden"],
-  x5 = pscl::pR2(nl_arrears_utility2)["McFadden"],
-  x6 = pscl::pR2(nl_overcrowded2)["McFadden"],
-  x7 = pscl::pR2(nl_warm2)["McFadden"]
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(nl_affordability2)["McFadden"], 
+#   x2 = pscl::pR2(nl_insecurity2)["McFadden"],
+#   x3 = pscl::pR2(nl_quality2)["McFadden"],
+#   x4 = pscl::pR2(nl_arrears_mortgage_rent2)["McFadden"],
+#   x5 = pscl::pR2(nl_arrears_utility2)["McFadden"],
+#   x6 = pscl::pR2(nl_overcrowded2)["McFadden"],
+#   x7 = pscl::pR2(nl_warm2)["McFadden"]
+# )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = nl_affordability2, 
+    "Insecurity" = nl_insecurity2, 
+    "Poor quality" = nl_quality2, 
+    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent2, 
+    "Arrears on utilities" = nl_arrears_utility2, 
+    "Overcrowded" = nl_overcrowded2, 
+    "Unable to keep warm" = nl_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -1175,28 +1204,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
-)
-
-modelsummary::modelsummary(
-  list(
-    "Unaffordability" = nl_affordability2, 
-    "Insecurity" = nl_insecurity2, 
-    "Poor quality" = nl_quality2, 
-    "Arrears on mortgage/rent" = nl_arrears_mortgage_rent2, 
-    "Arrears on utilities" = nl_arrears_utility2, 
-    "Overcrowded" = nl_overcrowded2, 
-    "Unable to keep warm" = nl_warm2
-  ), 
-  stars = TRUE, 
-  fmt = 2,
-  coef_rename = c(
-    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2,
+  # add_rows = pr2,
   output = "paper/figs/nl_matching_summary_robust.html"
 )
 
@@ -1465,15 +1473,36 @@ fi_warm <- glm(inability_to_keep_warm ~ takeup_allowance_housing +
   weights = weights, 
   data = fi_general_m_data)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(fi_affordability)["McFadden"], 
-  x2 = pscl::pR2(fi_insecurity)["McFadden"],
-  x3 = pscl::pR2(fi_quality)["McFadden"],
-  x4 = pscl::pR2(fi_arrears_mortgage_rent)["McFadden"],
-  x5 = pscl::pR2(fi_arrears_utility)["McFadden"],
-  x6 = pscl::pR2(fi_overcrowded)["McFadden"],
-  x7 = pscl::pR2(fi_warm)["McFadden"]
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(fi_affordability)["McFadden"], 
+#   x2 = pscl::pR2(fi_insecurity)["McFadden"],
+#   x3 = pscl::pR2(fi_quality)["McFadden"],
+#   x4 = pscl::pR2(fi_arrears_mortgage_rent)["McFadden"],
+#   x5 = pscl::pR2(fi_arrears_utility)["McFadden"],
+#   x6 = pscl::pR2(fi_overcrowded)["McFadden"],
+#   x7 = pscl::pR2(fi_warm)["McFadden"]
+# )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = fi_affordability, 
+    "Insecurity" = fi_insecurity, 
+    "Poor quality" = fi_quality, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
+    "Arrears on utilities" = fi_arrears_utility, 
+    "Overcrowded" = fi_overcrowded, 
+    "Unable to keep warm" = fi_warm
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -1494,28 +1523,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
-)
-
-modelsummary::modelsummary(
-  list(
-    "Unaffordability" = fi_affordability, 
-    "Insecurity" = fi_insecurity, 
-    "Poor quality" = fi_quality, 
-    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent, 
-    "Arrears on utilities" = fi_arrears_utility, 
-    "Overcrowded" = fi_overcrowded, 
-    "Unable to keep warm" = fi_warm
-  ), 
-  stars = TRUE, 
-  fmt = 2,
-  coef_rename = c(
-    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2,
+  # add_rows = pr2,
   output = "paper/figs/fi_matching_summary.html"
 )
 
@@ -1641,15 +1649,36 @@ fi_warm2 <- glm(inability_to_keep_warm ~ takeup_allowance_housing +
   weights = weights, 
   data = fi_general_m_data_robust)
 
-pr2 <- data.frame(
-  label = "pseudo-R2",
-  x1 = pscl::pR2(fi_affordability2)["McFadden"], 
-  x2 = pscl::pR2(fi_insecurity2)["McFadden"],
-  x3 = pscl::pR2(fi_quality2)["McFadden"],
-  x4 = pscl::pR2(fi_arrears_mortgage_rent2)["McFadden"],
-  x5 = pscl::pR2(fi_arrears_utility2)["McFadden"],
-  x6 = pscl::pR2(fi_overcrowded2)["McFadden"],
-  x7 = pscl::pR2(fi_warm2)["McFadden"]
+# pr2 <- data.frame(
+#   label = "pseudo-R2",
+#   x1 = pscl::pR2(fi_affordability2)["McFadden"], 
+#   x2 = pscl::pR2(fi_insecurity2)["McFadden"],
+#   x3 = pscl::pR2(fi_quality2)["McFadden"],
+#   x4 = pscl::pR2(fi_arrears_mortgage_rent2)["McFadden"],
+#   x5 = pscl::pR2(fi_arrears_utility2)["McFadden"],
+#   x6 = pscl::pR2(fi_overcrowded2)["McFadden"],
+#   x7 = pscl::pR2(fi_warm2)["McFadden"]
+# )
+
+modelsummary::modelsummary(
+  list(
+    "Unaffordability" = fi_affordability2, 
+    "Insecurity" = fi_insecurity2, 
+    "Poor quality" = fi_quality2, 
+    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent2, 
+    "Arrears on utilities" = fi_arrears_utility2, 
+    "Overcrowded" = fi_overcrowded2, 
+    "Unable to keep warm" = fi_warm2
+  ), 
+  stars = TRUE, 
+  fmt = 2,
+  coef_rename = c(
+    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
+    "eligibility_allowance_housing" = "amount of benefits eligible for",
+    "income_disposable_wo_housing" = "disposable income without benefits"
+  ), 
+  gof_map = "nobs", 
+  # add_rows = pr2
 )
 
 modelsummary::modelsummary(
@@ -1670,28 +1699,7 @@ modelsummary::modelsummary(
     "income_disposable_wo_housing" = "disposable income without benefits"
   ), 
   gof_map = "nobs", 
-  add_rows = pr2
-)
-
-modelsummary::modelsummary(
-  list(
-    "Unaffordability" = fi_affordability2, 
-    "Insecurity" = fi_insecurity2, 
-    "Poor quality" = fi_quality2, 
-    "Arrears on mortgage/rent" = fi_arrears_mortgage_rent2, 
-    "Arrears on utilities" = fi_arrears_utility2, 
-    "Overcrowded" = fi_overcrowded2, 
-    "Unable to keep warm" = fi_warm2
-  ), 
-  stars = TRUE, 
-  fmt = 2,
-  coef_rename = c(
-    "takeup_allowance_housingYes, taking benefits"="Taking benefits", 
-    "eligibility_allowance_housing" = "amount of benefits eligible for",
-    "income_disposable_wo_housing" = "disposable income without benefits"
-  ), 
-  gof_map = "nobs", 
-  add_rows = pr2, 
+  # add_rows = pr2, 
   output = "paper/figs/fi_matching_summary_robust.html"
 )
 
@@ -2063,7 +2071,8 @@ cz_plot <- modelplot(
   coef_map = c("takeup_allowance_housingYes, taking benefits"="")
 ) + geom_vline(xintercept = 0) + 
   labs(title = "Czechia") + 
-  guides(color = guide_legend(reverse = TRUE))
+  guides(color = guide_legend(reverse = TRUE)) + 
+  scale_colour_manual(values = PALETTE)
 
 nl_plot <- modelplot(
   list(
@@ -2078,7 +2087,8 @@ nl_plot <- modelplot(
   coef_map = c("takeup_allowance_housingYes, taking benefits"="")
 ) + geom_vline(xintercept = 0) + 
   labs(title = "Netherlands") + 
-  guides(color = guide_legend(reverse = TRUE))
+  guides(color = guide_legend(reverse = TRUE)) +
+  scale_colour_manual(values = PALETTE)
 
 fi_plot <- modelplot(
   list(
@@ -2093,7 +2103,8 @@ fi_plot <- modelplot(
   coef_map = c("takeup_allowance_housingYes, taking benefits"="")
 ) + geom_vline(xintercept = 0) + 
   labs(title = "Finland") + 
-  guides(color = guide_legend(reverse = TRUE))
+  guides(color = guide_legend(reverse = TRUE)) + 
+  scale_colour_manual(values = PALETTE)
 
 cz_plot + nl_plot + fi_plot + 
   plot_layout(guides = 'collect', axis_titles = "collect") + 
